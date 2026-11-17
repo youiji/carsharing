@@ -119,6 +119,12 @@ CREATE UNIQUE INDEX uq_rentals_one_active_per_car
     ON rentals (car_id)
     WHERE status IN ('booked', 'active');
 
+-- Один клиент — одна активная аренда (бронирование или поездка):
+-- защищает и от двух одновременных запросов одного пользователя.
+CREATE UNIQUE INDEX uq_rentals_one_active_per_user
+    ON rentals (user_id)
+    WHERE status IN ('booked', 'active');
+
 
 -- 5. maintenance_logs — журнал технического обслуживания
 
