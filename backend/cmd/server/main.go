@@ -20,7 +20,9 @@ func main() {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Println("write json: %v", err)
+	}
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
