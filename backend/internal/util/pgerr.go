@@ -15,7 +15,7 @@ func MapPgError(err error) error {
 		switch pgErr.ConstraintName {
 		case "uq_users_email":
 			return ErrEmailTaken
-		case "uq_users_drivers_license":
+		case "uq_users_driver_license":
 			return ErrLicenseTaken
 		}
 	}
