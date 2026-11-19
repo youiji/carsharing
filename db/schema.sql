@@ -19,10 +19,13 @@ CREATE TABLE tariffs (
     price_per_min   NUMERIC(8,2)  NOT NULL,
     waiting_per_min NUMERIC(8,2)  NOT NULL,
 
-    CONSTRAINT uq_tariffs_name          UNIQUE (name),
+    CONSTRAINT chk_tariffs_name         CHECK (btrim(name) <> ''),
     CONSTRAINT chk_tariffs_price        CHECK (price_per_min   >= 0),
     CONSTRAINT chk_tariffs_waiting      CHECK (waiting_per_min >= 0)
 );
+
+-- Название тарифа уникально без учёта регистра: «Эконом» и «эконом» — один тариф.
+CREATE UNIQUE INDEX uq_tariffs_name ON tariffs (lower(name));
 
 
 -- 2. users — пользователи (клиенты, менеджеры, администраторы)
@@ -32,12 +35,18 @@ CREATE TABLE users (
     email          CITEXT        NOT NULL,
     password_hash  VARCHAR(255)  NOT NULL,
     full_name      VARCHAR(100)  NOT NULL,
-    driver_license VARCHAR(20),             
+    driver_license VARCHAR(20),
     role           VARCHAR(20)   NOT NULL DEFAULT 'client',
     created_at     TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT uq_users_email           UNIQUE (email),
+    CONSTRAINT chk_users_email_length   CHECK (char_length(email) <= 100),
+    CONSTRAINT chk_users_full_name      CHECK (char_length(btrim(full_name)) >= 2),
     CONSTRAINT uq_users_driver_license  UNIQUE (driver_license),
+    -- ВУ хранится в нормализованном виде NNNN NNNNNN (серия и номер);
+    -- приведение к этому виду выполняет сервис при регистрации
+    CONSTRAINT chk_users_driver_license CHECK (driver_license IS NULL
+        OR driver_license ~ '^[0-9]{4} [0-9]{6}$'),
     CONSTRAINT chk_users_role           CHECK (role IN ('client', 'manager', 'admin'))
 );
 
@@ -57,6 +66,8 @@ CREATE TABLE cars (
     CONSTRAINT fk_cars_tariff
         FOREIGN KEY (tariff_id) REFERENCES tariffs (id) ON DELETE RESTRICT,
     CONSTRAINT uq_cars_plate_number     UNIQUE (plate_number),
+    CONSTRAINT chk_cars_brand_model     CHECK (btrim(brand_model) <> ''),
+    CONSTRAINT chk_cars_plate_number    CHECK (btrim(plate_number) <> ''),
     CONSTRAINT chk_cars_fuel_level      CHECK (fuel_level BETWEEN 0 AND 100),
     CONSTRAINT chk_cars_latitude        CHECK (latitude   BETWEEN  -90 AND  90),
     CONSTRAINT chk_cars_longitude       CHECK (longitude  BETWEEN -180 AND 180),
@@ -70,14 +81,14 @@ CREATE TABLE cars (
 CREATE TABLE rentals (
     id              BIGSERIAL      PRIMARY KEY,
     user_id         BIGINT         NOT NULL,
-    tariff_id       INT            NOT NULL,   
+    tariff_id       INT            NOT NULL,
     car_id          BIGINT         NOT NULL,
     booked_at       TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     started_at      TIMESTAMPTZ,
-    ended_at        TIMESTAMPTZ,
-    price_per_min   NUMERIC(8,2)   NOT NULL,   
-    waiting_per_min NUMERIC(8,2)   NOT NULL,   
-    total_cost      NUMERIC(10,2),             
+    ended_at        TIMESTAMPTZ,               -- конец поездки или момент отмены бронирования
+    price_per_min   NUMERIC(8,2)   NOT NULL,
+    waiting_per_min NUMERIC(8,2)   NOT NULL,
+    total_cost      NUMERIC(10,2),             -- стоимость поездки или списанное при отмене ожидание
     status          VARCHAR(20)    NOT NULL DEFAULT 'booked',
 
     CONSTRAINT fk_rentals_user
@@ -93,19 +104,28 @@ CREATE TABLE rentals (
     -- Хронология: booked_at <= started_at <= ended_at
     CONSTRAINT chk_rentals_started_after_booked
         CHECK (started_at IS NULL OR started_at >= booked_at),
-        
+
     CONSTRAINT chk_rentals_ended_after_started
         CHECK (ended_at IS NULL OR started_at IS NULL OR ended_at >= started_at),
 
-    -- Согласованность статуса и дат
+    CONSTRAINT chk_rentals_ended_after_booked
+        CHECK (ended_at IS NULL OR ended_at >= booked_at),
+
+    -- Согласованность статуса, дат и стоимости:
+    --   booked    — ни старта, ни конца, ни стоимости;
+    --   active    — есть старт, нет конца и стоимости;
+    --   completed — есть старт, конец и стоимость;
+    --   cancelled — поездки не было (нет старта), есть момент отмены (ended_at)
+    --               и списанное ожидание (total_cost, 0 при отмене менеджером).
     CONSTRAINT chk_rentals_status_dates CHECK (
-           (status IN ('booked', 'cancelled')
-                AND started_at IS NULL AND ended_at IS NULL)
+           (status = 'booked'
+                AND started_at IS NULL AND ended_at IS NULL AND total_cost IS NULL)
         OR (status = 'active'
-                AND started_at IS NOT NULL AND ended_at IS NULL)
+                AND started_at IS NOT NULL AND ended_at IS NULL AND total_cost IS NULL)
         OR (status = 'completed'
-                AND started_at IS NOT NULL AND ended_at IS NOT NULL
-                AND total_cost IS NOT NULL)
+                AND started_at IS NOT NULL AND ended_at IS NOT NULL AND total_cost IS NOT NULL)
+        OR (status = 'cancelled'
+                AND started_at IS NULL AND ended_at IS NOT NULL AND total_cost IS NOT NULL)
     ),
 
     CONSTRAINT chk_rentals_price        CHECK (price_per_min   >= 0),
@@ -131,7 +151,7 @@ CREATE UNIQUE INDEX uq_rentals_one_active_per_user
 CREATE TABLE maintenance_logs (
     id          BIGSERIAL      PRIMARY KEY,
     car_id      BIGINT         NOT NULL,
-    manager_id  BIGINT         NOT NULL,   -- роль manager проверяется в приложении
+    manager_id  BIGINT         NOT NULL,   -- автор: manager или admin (проверяется в приложении)
     description VARCHAR(255)   NOT NULL,
     cost        NUMERIC(10,2)  NOT NULL,
     logged_at   TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -140,6 +160,7 @@ CREATE TABLE maintenance_logs (
         FOREIGN KEY (car_id)     REFERENCES cars  (id) ON DELETE RESTRICT,
     CONSTRAINT fk_ml_manager
         FOREIGN KEY (manager_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT chk_ml_description CHECK (btrim(description) <> ''),
     CONSTRAINT chk_ml_cost      CHECK (cost >= 0)
 );
 

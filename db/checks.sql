@@ -5,9 +5,9 @@
 --
 -- Каждый тест выполняется в своей транзакции и заканчивается ROLLBACK,
 -- поэтому данные в базе не меняются.
--- В тестах 1–20 база ДОЛЖНА отклонить запрос: в выводе будет строка ERROR
+-- В тестах 1–27 база ДОЛЖНА отклонить запрос: в выводе будет строка ERROR
 -- с именем нарушенного ограничения (имена — из db/schema.sql).
--- В тестах 21–23 запрос должен ПРОЙТИ (INSERT 0 1 / UPDATE 1 / DELETE 1).
+-- В тестах 28–30 запрос должен ПРОЙТИ (INSERT 0 1 / UPDATE 1 / DELETE 1).
 -- Сообщения об ошибках выводит сам PostgreSQL, на английском языке.
 -- =============================================================
 
@@ -28,7 +28,6 @@ WHERE u.email = 'dmitry.ivanov@example.com' AND c.plate_number = 'Е303ЕЕ777';
 ROLLBACK;
 
 \echo
-\echo
 \echo 'Тест 2. Вторая аренда у клиента, у которого уже есть бронирование (oleg.novikov)'
 \echo 'Ожидается: ERROR ... uq_rentals_one_active_per_user'
 BEGIN;
@@ -38,6 +37,7 @@ FROM users u, cars c JOIN tariffs t ON t.id = c.tariff_id
 WHERE u.email = 'oleg.novikov@example.com' AND c.plate_number = 'А444АА777';
 ROLLBACK;
 
+\echo
 \echo 'Тест 3. Статус completed без ended_at'
 \echo 'Ожидается: ERROR ... chk_rentals_status_dates'
 BEGIN;
@@ -116,10 +116,30 @@ WHERE u.email = 'oleg.novikov@example.com' AND c.plate_number = 'В202ВВ777';
 ROLLBACK;
 
 \echo
+\echo 'Тест 10. Бронирование с заполненной стоимостью'
+\echo 'Ожидается: ERROR ... chk_rentals_status_dates'
+BEGIN;
+INSERT INTO rentals (user_id, tariff_id, car_id, price_per_min, waiting_per_min, total_cost, status)
+SELECT u.id, c.tariff_id, c.id, t.price_per_min, t.waiting_per_min, 100, 'booked'
+FROM users u, cars c JOIN tariffs t ON t.id = c.tariff_id
+WHERE u.email = 'dmitry.ivanov@example.com' AND c.plate_number = 'В202ВВ777';
+ROLLBACK;
+
+\echo
+\echo 'Тест 11. Отмена бронирования без момента отмены и списанной суммы'
+\echo 'Ожидается: ERROR ... chk_rentals_status_dates'
+BEGIN;
+INSERT INTO rentals (user_id, tariff_id, car_id, price_per_min, waiting_per_min, status)
+SELECT u.id, c.tariff_id, c.id, t.price_per_min, t.waiting_per_min, 'cancelled'
+FROM users u, cars c JOIN tariffs t ON t.id = c.tariff_id
+WHERE u.email = 'dmitry.ivanov@example.com' AND c.plate_number = 'В202ВВ777';
+ROLLBACK;
+
+\echo
 \echo '=============== B. Нарушения ограничений автомобилей, пользователей, тарифов ==============='
 
 \echo
-\echo 'Тест 10. Уровень топлива 150 %'
+\echo 'Тест 12. Уровень топлива 150 %'
 \echo 'Ожидается: ERROR ... chk_cars_fuel_level'
 BEGIN;
 INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude)
@@ -127,7 +147,7 @@ SELECT id, 'Test Car', 'Т001ТТ799', 150, 55.75, 37.61 FROM tariffs WHERE name
 ROLLBACK;
 
 \echo
-\echo 'Тест 11. Широта 95 (допустимо от -90 до 90)'
+\echo 'Тест 13. Широта 95 (допустимо от -90 до 90)'
 \echo 'Ожидается: ERROR ... chk_cars_latitude'
 BEGIN;
 INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude)
@@ -135,7 +155,7 @@ SELECT id, 'Test Car', 'Т002ТТ799', 50, 95, 37.61 FROM tariffs WHERE name = '
 ROLLBACK;
 
 \echo
-\echo 'Тест 12. Долгота 200 (допустимо от -180 до 180)'
+\echo 'Тест 14. Долгота 200 (допустимо от -180 до 180)'
 \echo 'Ожидается: ERROR ... chk_cars_longitude'
 BEGIN;
 INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude)
@@ -143,7 +163,7 @@ SELECT id, 'Test Car', 'Т003ТТ799', 50, 55.75, 200 FROM tariffs WHERE name = 
 ROLLBACK;
 
 \echo
-\echo 'Тест 13. Неизвестный статус автомобиля'
+\echo 'Тест 15. Неизвестный статус автомобиля'
 \echo 'Ожидается: ERROR ... chk_cars_status'
 BEGIN;
 INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude, status)
@@ -151,7 +171,7 @@ SELECT id, 'Test Car', 'Т004ТТ799', 50, 55.75, 37.61, 'flying' FROM tariffs W
 ROLLBACK;
 
 \echo
-\echo 'Тест 14. Дубликат гос. номера'
+\echo 'Тест 16. Дубликат гос. номера'
 \echo 'Ожидается: ERROR ... uq_cars_plate_number'
 BEGIN;
 INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude)
@@ -159,7 +179,7 @@ SELECT id, 'Test Car', 'А101АА777', 50, 55.75, 37.61 FROM tariffs WHERE name 
 ROLLBACK;
 
 \echo
-\echo 'Тест 15. Неизвестная роль пользователя'
+\echo 'Тест 17. Неизвестная роль пользователя'
 \echo 'Ожидается: ERROR ... chk_users_role'
 BEGIN;
 INSERT INTO users (email, password_hash, full_name, role)
@@ -167,7 +187,7 @@ VALUES ('hacker@example.com', 'x', 'Test User', 'superadmin');
 ROLLBACK;
 
 \echo
-\echo 'Тест 16. Дубликат email в другом регистре (CITEXT)'
+\echo 'Тест 18. Дубликат email в другом регистре (CITEXT)'
 \echo 'Ожидается: ERROR ... uq_users_email'
 BEGIN;
 INSERT INTO users (email, password_hash, full_name)
@@ -175,31 +195,69 @@ VALUES ('IVAN.PETROV@EXAMPLE.COM', 'x', 'Test User');
 ROLLBACK;
 
 \echo
-\echo 'Тест 17. Отрицательная цена тарифа'
+\echo 'Тест 19. Отрицательная цена тарифа'
 \echo 'Ожидается: ERROR ... chk_tariffs_price'
 BEGIN;
 INSERT INTO tariffs (name, price_per_min, waiting_per_min) VALUES ('Тест', -1, 1);
 ROLLBACK;
 
 \echo
+\echo 'Тест 20. Водительское удостоверение не в формате NNNN NNNNNN'
+\echo 'Ожидается: ERROR ... chk_users_driver_license'
+BEGIN;
+INSERT INTO users (email, password_hash, full_name, driver_license)
+VALUES ('license.test@example.com', 'x', 'Test User', '77AB-12');
+ROLLBACK;
+
+\echo
+\echo 'Тест 21. Название тарифа, отличающееся от существующего только регистром'
+\echo 'Ожидается: ERROR ... uq_tariffs_name'
+BEGIN;
+INSERT INTO tariffs (name, price_per_min, waiting_per_min) VALUES ('ЭКОНОМ', 1, 1);
+ROLLBACK;
+
+\echo
+\echo 'Тест 22. Пустое ФИО пользователя'
+\echo 'Ожидается: ERROR ... chk_users_full_name'
+BEGIN;
+INSERT INTO users (email, password_hash, full_name) VALUES ('empty.name@example.com', 'x', '   ');
+ROLLBACK;
+
+\echo
+\echo 'Тест 23. Email длиннее 100 символов'
+\echo 'Ожидается: ERROR ... chk_users_email_length'
+BEGIN;
+INSERT INTO users (email, password_hash, full_name) VALUES (repeat('a', 95) || '@example.com', 'x', 'Test User');
+ROLLBACK;
+
+\echo
+\echo 'Тест 24. Запись обслуживания с пустым описанием'
+\echo 'Ожидается: ERROR ... chk_ml_description'
+BEGIN;
+INSERT INTO maintenance_logs (car_id, manager_id, description, cost)
+SELECT c.id, u.id, ' ', 100 FROM cars c, users u
+WHERE c.plate_number = 'А101АА777' AND u.email = 'manager1@carsharing.local';
+ROLLBACK;
+
+\echo
 \echo '=============== C. Защита истории: удаление связанных записей ==============='
 
 \echo
-\echo 'Тест 18. Удаление автомобиля, у которого есть аренды и обслуживание'
+\echo 'Тест 25. Удаление автомобиля, у которого есть аренды и обслуживание'
 \echo 'Ожидается: ERROR ... violates foreign key constraint (fk_rentals_car или fk_ml_car)'
 BEGIN;
 DELETE FROM cars WHERE plate_number = 'А101АА777';
 ROLLBACK;
 
 \echo
-\echo 'Тест 19. Удаление пользователя, у которого есть аренды'
+\echo 'Тест 26. Удаление пользователя, у которого есть аренды'
 \echo 'Ожидается: ERROR ... fk_rentals_user'
 BEGIN;
 DELETE FROM users WHERE email = 'ivan.petrov@example.com';
 ROLLBACK;
 
 \echo
-\echo 'Тест 20. Удаление тарифа, на который ссылаются автомобили'
+\echo 'Тест 27. Удаление тарифа, на который ссылаются автомобили'
 \echo 'Ожидается: ERROR ... violates foreign key constraint (fk_cars_tariff или fk_rentals_tariff)'
 BEGIN;
 DELETE FROM tariffs WHERE name = 'Эконом';
@@ -209,7 +267,7 @@ ROLLBACK;
 \echo '=============== D. Допустимые операции (должны пройти) ==============='
 
 \echo
-\echo 'Тест 21. Удаление тарифа без связанных записей'
+\echo 'Тест 28. Удаление тарифа без связанных записей'
 \echo 'Ожидается: INSERT 0 1, затем DELETE 1'
 BEGIN;
 INSERT INTO tariffs (name, price_per_min, waiting_per_min) VALUES ('Временный', 5, 1);
@@ -217,7 +275,7 @@ DELETE FROM tariffs WHERE name = 'Временный';
 ROLLBACK;
 
 \echo
-\echo 'Тест 22. Завершение активной аренды освобождает машину для нового бронирования'
+\echo 'Тест 29. Завершение активной аренды освобождает машину для нового бронирования'
 \echo 'Ожидается: UPDATE 1, затем INSERT 0 1'
 BEGIN;
 UPDATE rentals SET status = 'completed', ended_at = now(), total_cost = 250
@@ -230,10 +288,10 @@ WHERE u.email = 'dmitry.ivanov@example.com' AND c.plate_number = 'Е303ЕЕ777';
 ROLLBACK;
 
 \echo
-\echo 'Тест 23. Отмена бронирования и повторное бронирование той же машины'
+\echo 'Тест 30. Отмена бронирования и повторное бронирование той же машины'
 \echo 'Ожидается: UPDATE 1, затем INSERT 0 1'
 BEGIN;
-UPDATE rentals SET status = 'cancelled'
+UPDATE rentals SET status = 'cancelled', ended_at = now(), total_cost = 0
 WHERE status = 'booked'
   AND car_id = (SELECT id FROM cars WHERE plate_number = 'К404КК777');
 INSERT INTO rentals (user_id, tariff_id, car_id, price_per_min, waiting_per_min, status)
@@ -279,11 +337,12 @@ WHERE r.tariff_id <> c.tariff_id
    OR r.waiting_per_min <> t.waiting_per_min;
 
 \echo
-\echo 'Проверка 5. Записи обслуживания, где manager_id принадлежит не менеджеру'
+\echo 'Проверка 5. Записи обслуживания, автор которых сейчас не менеджер и не администратор'
+\echo '(может быть не пусто, если сотрудника позже перевели в клиенты: запись остаётся в истории)'
 SELECT m.id, u.email, u.role
 FROM maintenance_logs m
 JOIN users u ON u.id = m.manager_id
-WHERE u.role <> 'manager';
+WHERE u.role NOT IN ('manager', 'admin');
 
 \echo
 \echo 'Проверка 6. Аренды у пользователей без водительского удостоверения'
@@ -293,7 +352,7 @@ JOIN users u ON u.id = r.user_id
 WHERE u.driver_license IS NULL;
 
 \echo
-\echo '=============== F. Статистика (пробные запросы для будущего API) ==============='
+\echo '=============== F. Статистика (те же расчёты, что в GET /api/stats) ==============='
 
 \echo
 \echo 'Пользователи по ролям'
@@ -310,10 +369,10 @@ FROM rentals
 WHERE started_at IS NOT NULL;
 
 \echo
-\echo 'Завершённые аренды: выручка по тарифам'
+\echo 'Выручка по тарифам: завершённые поездки и платные отмены бронирований'
 SELECT t.name AS tariff, count(*) AS rentals_count, sum(r.total_cost) AS revenue
 FROM rentals r
 JOIN tariffs t ON t.id = r.tariff_id
-WHERE r.status = 'completed'
+WHERE r.status = 'completed' OR (r.status = 'cancelled' AND r.total_cost > 0)
 GROUP BY t.name
 ORDER BY revenue DESC;
