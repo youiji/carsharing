@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"carsharing/internal/config"
+	"carsharing/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -14,8 +19,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	pool, err := repository.NewPool(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", healthHandler)
+	mux.HandleFunc("GET /api/health", healthHandler(pool))
 	mux.HandleFunc("GET /api/ping", pingHandler)
 
 	log.Println("сервер запущен на", cfg.Addr)
@@ -32,8 +43,21 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	}
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+func healthHandler(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := pool.Ping(ctx); err != nil {
+			log.Printf("health: %v", err)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+				"status":   "degraded",
+				"database": "unavailable",
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "database": "ok"})
+	}
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
