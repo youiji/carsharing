@@ -5,10 +5,9 @@ import (
 	"log"
 	"net/http"
 
+	"carsharing/internal/app"
 	"carsharing/internal/config"
-	"carsharing/internal/handlers"
 	"carsharing/internal/repository"
-	"carsharing/internal/services"
 )
 
 func main() {
@@ -23,11 +22,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	users := repository.NewUserRepository(pool)
-	router := handlers.NewRouter(handlers.Deps{
-		DB:   pool,
-		Auth: services.NewAuthService(users),
-	})
+	router := app.NewHandler(pool)
 
 	log.Println("сервер запущен на", cfg.Addr)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
