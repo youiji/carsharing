@@ -1,0 +1,34 @@
+package dto
+
+import (
+	"time"
+
+	"carsharing/internal/models"
+)
+
+type RegisterRequest struct {
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	FullName      string `json:"full_name"`
+	DriverLicense string `json:"driver_license"`
+}
+
+type User struct {
+	ID            int64     `json:"id"`
+	Email         string    `json:"email"`
+	FullName      string    `json:"full_name"`
+	DriverLicense *string   `json:"driver_license"`
+	Role          string    `json:"role"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+func NewUser(u models.User) User {
+	return User{
+		ID:            u.ID,
+		Email:         u.Email,
+		FullName:      u.FullName,
+		DriverLicense: u.DriverLicense,
+		Role:          u.Role,
+		CreatedAt:     u.CreatedAt,
+	}
+}

@@ -39,5 +39,5 @@ var (
 	ErrNotFound     = newErr(http.StatusNotFound, "not_found", "Объект не найден")
 	ErrInternal     = newErr(http.StatusInternalServerError, "internal_error", "Внутренняя ошибка сервера")
 	ErrEmailTaken   = newErr(http.StatusConflict, "email_taken", "Email уже занят")
-	ErrLicenseTaken = newErr(http.StatusConflict, "license_taken", "водительское удостоверение уже зарегистрировано")
+	ErrLicenseTaken = newErr(http.StatusConflict, "license_taken", "Водительское удостоверение уже зарегистрировано")
 )
