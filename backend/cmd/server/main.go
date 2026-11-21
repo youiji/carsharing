@@ -8,6 +8,7 @@ import (
 	"carsharing/internal/app"
 	"carsharing/internal/config"
 	"carsharing/internal/repository"
+	"carsharing/internal/util"
 )
 
 func main() {
@@ -22,10 +23,12 @@ func main() {
 	}
 	defer pool.Close()
 
-	router := app.NewHandler(pool)
+	tokens := util.NewTokenManager(cfg.JWTSecret, cfg.JWTTTL)
+	router := app.NewHandler(pool, tokens)
 
 	log.Println("сервер запущен на", cfg.Addr)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
 		log.Fatal(err)
 	}
+
 }

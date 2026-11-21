@@ -10,16 +10,20 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"carsharing/internal/app"
+	"carsharing/internal/util"
 )
 
 type env struct {
 	srv *httptest.Server
 }
+
+const testSecret = "e2e-secret-e2e-secret-e2e-secret-e2e"
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
@@ -42,7 +46,8 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(app.NewHandler(pool))
+
+	srv := httptest.NewServer(app.NewHandler(pool, util.NewTokenManager(testSecret, 30*time.Minute)))
 	t.Cleanup(func() {
 		srv.Close()
 		pool.Close()
@@ -122,4 +127,10 @@ func errorCode(r response) string {
 	errObj, _ := r.body["error"].(map[string]any)
 	code, _ := errObj["code"].(string)
 	return code
+}
+
+func errorMessage(r response) string {
+	errObj, _ := r.body["error"].(map[string]any)
+	msg, _ := errObj["message"].(string)
+	return msg
 }

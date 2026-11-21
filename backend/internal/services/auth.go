@@ -2,23 +2,27 @@ package services
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"carsharing/internal/dto"
 	"carsharing/internal/models"
+	"carsharing/internal/repository"
 	"carsharing/internal/util"
 )
 
 type UserStore interface {
 	Create(ctx context.Context, u models.User) (models.User, error)
+	GetByEmail(ctx context.Context, email string) (models.User, error)
 }
 
 type AuthService struct {
-	users UserStore
+	users  UserStore
+	tokens *util.TokenManager
 }
 
-func NewAuthService(users UserStore) *AuthService {
-	return &AuthService{users: users}
+func NewAuthService(users UserStore, tokens *util.TokenManager) *AuthService {
+	return &AuthService{users: users, tokens: tokens}
 }
 
 func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (dto.User, error) {
@@ -55,4 +59,47 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		return dto.User{}, err
 	}
 	return dto.NewUser(created), nil
+}
+
+func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (dto.LoginResponse, error) {
+	email := strings.TrimSpace(req.Email)
+
+	var v util.Validator
+	if email == "" {
+		v.Add("email", "обязательное поле")
+	}
+	if req.Password == "" {
+		v.Add("password", "обязательное поле")
+	}
+	if err := v.Err(); err != nil {
+		return dto.LoginResponse{}, err
+	}
+
+	user, err := s.users.GetByEmail(ctx, email)
+	if errors.Is(err, repository.ErrNotFound) {
+		util.SpendPasswordCheck(req.Password)
+		return dto.LoginResponse{}, util.ErrInvalidCredentials
+	}
+	if err != nil {
+		return dto.LoginResponse{}, err
+	}
+
+	ok, err := util.CheckPassword(user.PasswordHash, req.Password)
+	if err != nil {
+		return dto.LoginResponse{}, err
+	}
+	if !ok {
+		return dto.LoginResponse{}, util.ErrInvalidCredentials
+	}
+
+	token, err := s.tokens.Issue(user.ID, user.Role)
+	if err != nil {
+		return dto.LoginResponse{}, err
+	}
+	return dto.LoginResponse{
+		Token:     token,
+		TokenType: "Bearer",
+		ExpiresIn: int(s.tokens.TTL().Seconds()),
+		User:      dto.NewUser(user),
+	}, nil
 }

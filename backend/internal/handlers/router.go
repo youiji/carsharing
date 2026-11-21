@@ -19,6 +19,6 @@ func NewRouter(d Deps) http.Handler {
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
-
+	mux.HandleFunc("POST /api/auth/login", auth.Login)
 	return mux
 }

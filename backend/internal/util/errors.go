@@ -33,11 +33,12 @@ func newErr(status int, code, msg string) *AppError {
 }
 
 var (
-	ErrValidation   = newErr(http.StatusBadRequest, "validation_error", "Некорректные данные запроса")
-	ErrUnauthorized = newErr(http.StatusUnauthorized, "unauthorized", "Требуется вход в систему")
-	ErrForbidden    = newErr(http.StatusForbidden, "forbidden", "Недостаточно прав")
-	ErrNotFound     = newErr(http.StatusNotFound, "not_found", "Объект не найден")
-	ErrInternal     = newErr(http.StatusInternalServerError, "internal_error", "Внутренняя ошибка сервера")
-	ErrEmailTaken   = newErr(http.StatusConflict, "email_taken", "Email уже занят")
-	ErrLicenseTaken = newErr(http.StatusConflict, "license_taken", "Водительское удостоверение уже зарегистрировано")
+	ErrValidation         = newErr(http.StatusBadRequest, "validation_error", "Некорректные данные запроса")
+	ErrUnauthorized       = newErr(http.StatusUnauthorized, "unauthorized", "Требуется вход в систему")
+	ErrForbidden          = newErr(http.StatusForbidden, "forbidden", "Недостаточно прав")
+	ErrNotFound           = newErr(http.StatusNotFound, "not_found", "Объект не найден")
+	ErrInternal           = newErr(http.StatusInternalServerError, "internal_error", "Внутренняя ошибка сервера")
+	ErrEmailTaken         = newErr(http.StatusConflict, "email_taken", "Email уже занят")
+	ErrLicenseTaken       = newErr(http.StatusConflict, "license_taken", "Водительское удостоверение уже зарегистрировано")
+	ErrInvalidCredentials = newErr(http.StatusUnauthorized, "invalid_credentials", "Неверный email или пароль")
 )

@@ -78,3 +78,80 @@ func TestRegister(t *testing.T) {
 		})
 	}
 }
+
+func TestLogin(t *testing.T) {
+	e := newEnv(t)
+
+	t.Run("успешный вход", func(t *testing.T) {
+		r := e.request(t, http.MethodPost, "/api/auth/login", map[string]any{
+			"email":    "ivan.petrov@example.com",
+			"password": "Client123!",
+		})
+		if r.status != http.StatusOK {
+			t.Fatalf("статус %d, ожидался 200, тело %v", r.status, r.body)
+		}
+
+		token, _ := r.body["token"].(string)
+		if token == "" {
+			t.Error("пустой токен")
+		}
+		if r.body["token_type"] != "Bearer" {
+			t.Errorf("token_type %v, ожидался Bearer", r.body["token_type"])
+		}
+
+		user, _ := r.body["user"].(map[string]any)
+		if user["role"] != "client" {
+			t.Errorf("роль %v, ожидалась client", user["role"])
+		}
+		if _, leaked := user["password_hash"]; leaked {
+			t.Error("в ответе есть хеш пароля")
+		}
+	})
+
+	cases := []struct {
+		name       string
+		body       map[string]any
+		wantStatus int
+		wantCode   string
+	}{
+		{
+			name:       "неверный пароль",
+			body:       map[string]any{"email": "ivan.petrov@example.com", "password": "WrongPass1!"},
+			wantStatus: http.StatusUnauthorized,
+			wantCode:   "invalid_credentials",
+		},
+		{
+			name:       "несуществующий email",
+			body:       map[string]any{"email": "nobody@example.com", "password": "Client123!"},
+			wantStatus: http.StatusUnauthorized,
+			wantCode:   "invalid_credentials",
+		},
+		{
+			name:       "пустой пароль",
+			body:       map[string]any{"email": "ivan.petrov@example.com", "password": ""},
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "validation_error",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := e.request(t, http.MethodPost, "/api/auth/login", tc.body)
+			if r.status != tc.wantStatus || errorCode(r) != tc.wantCode {
+				t.Errorf("получили %d %q, ожидали %d %q, тело %v",
+					r.status, errorCode(r), tc.wantStatus, tc.wantCode, r.body)
+			}
+		})
+	}
+
+	t.Run("одинаковое сообщение для неверного email и пароля", func(t *testing.T) {
+		wrongPass := e.request(t, http.MethodPost, "/api/auth/login", map[string]any{
+			"email": "ivan.petrov@example.com", "password": "WrongPass1!",
+		})
+		noUser := e.request(t, http.MethodPost, "/api/auth/login", map[string]any{
+			"email": "nobody@example.com", "password": "WrongPass1!",
+		})
+		if errorMessage(wrongPass) != errorMessage(noUser) {
+			t.Errorf("сообщения различаются: %q и %q", errorMessage(wrongPass), errorMessage(noUser))
+		}
+	})
+}

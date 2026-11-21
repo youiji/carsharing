@@ -7,7 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const bcryptCost = 12
+const bcryptCost = 10
 
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
@@ -19,11 +19,17 @@ func HashPassword(password string) (string, error) {
 
 func CheckPassword(hash, password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	if err != nil {
+	if err == nil {
 		return true, nil
 	}
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return false, nil
 	}
 	return false, fmt.Errorf("compare password: %w", err)
+}
+
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcryptCost)
+
+func SpendPasswordCheck(password string) {
+	_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 }
