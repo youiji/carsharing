@@ -28,17 +28,17 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var log dto.LoginRequest
-	if err := util.DecodeJSON(w, r, &log); err != nil {
+	var req dto.LoginRequest
+	if err := util.DecodeJSON(w, r, &req); err != nil {
 		util.WriteError(w, r, err)
 		return
 	}
-	user, err := h.svc.Login(r.Context(), log)
+	resp, err := h.svc.Login(r.Context(), req)
 	if err != nil {
 		util.WriteError(w, r, err)
 		return
 	}
-	util.WriteJSON(w, http.StatusOK, user)
+	util.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {

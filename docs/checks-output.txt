@@ -20,63 +20,63 @@ ROLLBACK
 Ожидается: ERROR ... chk_rentals_status_dates
 BEGIN
 psql:db/checks.sql:49: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status_dates"
-DETAIL:  Failing row contains (17, 8, 1, 2, 2026-11-19 21:53:20.977641+03, 2026-11-19 22:03:20.977641+03, null, 8.90, 2.00, 100.00, completed).
+DETAIL:  Failing row contains (17, 8, 1, 2, 2026-11-18 04:35:32.759185+03, 2026-11-18 04:45:32.759185+03, null, 8.90, 2.00, 100.00, completed).
 ROLLBACK
 
 Тест 4. Статус active без started_at
 Ожидается: ERROR ... chk_rentals_status_dates
 BEGIN
 psql:db/checks.sql:59: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status_dates"
-DETAIL:  Failing row contains (18, 8, 1, 2, 2026-11-19 22:03:20.977901+03, null, null, 8.90, 2.00, null, active).
+DETAIL:  Failing row contains (18, 8, 1, 2, 2026-11-18 04:45:32.7595+03, null, null, 8.90, 2.00, null, active).
 ROLLBACK
 
 Тест 5. Статус completed без total_cost
 Ожидается: ERROR ... chk_rentals_status_dates
 BEGIN
 psql:db/checks.sql:71: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status_dates"
-DETAIL:  Failing row contains (19, 8, 1, 2, 2026-11-19 19:03:20.978088+03, 2026-11-19 20:03:20.978088+03, 2026-11-19 21:03:20.978088+03, 8.90, 2.00, null, completed).
+DETAIL:  Failing row contains (19, 8, 1, 2, 2026-11-18 01:45:32.759719+03, 2026-11-18 02:45:32.759719+03, 2026-11-18 03:45:32.759719+03, 8.90, 2.00, null, completed).
 ROLLBACK
 
 Тест 6. Старт поездки раньше бронирования (started_at < booked_at)
 Ожидается: ERROR ... chk_rentals_started_after_booked
 BEGIN
 psql:db/checks.sql:83: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_started_after_booked"
-DETAIL:  Failing row contains (20, 8, 1, 2, 2026-11-19 22:03:20.978286+03, 2026-11-19 21:03:20.978286+03, null, 8.90, 2.00, null, active).
+DETAIL:  Failing row contains (20, 8, 1, 2, 2026-11-18 04:45:32.759949+03, 2026-11-18 03:45:32.759949+03, null, 8.90, 2.00, null, active).
 ROLLBACK
 
 Тест 7. Окончание поездки раньше старта (ended_at < started_at)
 Ожидается: ERROR ... chk_rentals_ended_after_started
 BEGIN
 psql:db/checks.sql:95: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_ended_after_started"
-DETAIL:  Failing row contains (21, 8, 1, 2, 2026-11-19 19:03:20.978473+03, 2026-11-19 20:03:20.978473+03, 2026-11-19 19:33:20.978473+03, 8.90, 2.00, 100.00, completed).
+DETAIL:  Failing row contains (21, 8, 1, 2, 2026-11-18 01:45:32.760179+03, 2026-11-18 02:45:32.760179+03, 2026-11-18 02:15:32.760179+03, 8.90, 2.00, 100.00, completed).
 ROLLBACK
 
 Тест 8. Неизвестный статус аренды
 Ожидается: ERROR ... chk_rentals_status
 BEGIN
 psql:db/checks.sql:105: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status"
-DETAIL:  Failing row contains (22, 8, 1, 2, 2026-11-19 22:03:20.97866+03, null, null, 8.90, 2.00, null, paused).
+DETAIL:  Failing row contains (22, 8, 1, 2, 2026-11-18 04:45:32.760523+03, null, null, 8.90, 2.00, null, paused).
 ROLLBACK
 
 Тест 9. Отрицательная цена в аренде
 Ожидается: ERROR ... chk_rentals_price
 BEGIN
 psql:db/checks.sql:115: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_price"
-DETAIL:  Failing row contains (23, 8, 1, 2, 2026-11-19 22:03:20.978833+03, null, null, -5.00, 2.00, null, booked).
+DETAIL:  Failing row contains (23, 8, 1, 2, 2026-11-18 04:45:32.760746+03, null, null, -5.00, 2.00, null, booked).
 ROLLBACK
 
 Тест 10. Бронирование с заполненной стоимостью
 Ожидается: ERROR ... chk_rentals_status_dates
 BEGIN
 psql:db/checks.sql:125: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status_dates"
-DETAIL:  Failing row contains (24, 6, 1, 2, 2026-11-19 22:03:20.979004+03, null, null, 8.90, 2.00, 100.00, booked).
+DETAIL:  Failing row contains (24, 6, 1, 2, 2026-11-18 04:45:32.76095+03, null, null, 8.90, 2.00, 100.00, booked).
 ROLLBACK
 
 Тест 11. Отмена бронирования без момента отмены и списанной суммы
 Ожидается: ERROR ... chk_rentals_status_dates
 BEGIN
 psql:db/checks.sql:135: ERROR:  new row for relation "rentals" violates check constraint "chk_rentals_status_dates"
-DETAIL:  Failing row contains (25, 6, 1, 2, 2026-11-19 22:03:20.97918+03, null, null, 8.90, 2.00, null, cancelled).
+DETAIL:  Failing row contains (25, 6, 1, 2, 2026-11-18 04:45:32.761162+03, null, null, 8.90, 2.00, null, cancelled).
 ROLLBACK
 
 =============== B. Нарушения ограничений автомобилей, пользователей, тарифов ===============
@@ -120,7 +120,7 @@ ROLLBACK
 Ожидается: ERROR ... chk_users_role
 BEGIN
 psql:db/checks.sql:186: ERROR:  new row for relation "users" violates check constraint "chk_users_role"
-DETAIL:  Failing row contains (10, hacker@example.com, x, Test User, null, superadmin, 2026-11-19 22:03:20.980085+03).
+DETAIL:  Failing row contains (10, hacker@example.com, x, Test User, null, superadmin, 2026-11-18 04:45:32.762124+03).
 ROLLBACK
 
 Тест 18. Дубликат email в другом регистре (CITEXT)
@@ -141,7 +141,7 @@ ROLLBACK
 Ожидается: ERROR ... chk_users_driver_license
 BEGIN
 psql:db/checks.sql:209: ERROR:  new row for relation "users" violates check constraint "chk_users_driver_license"
-DETAIL:  Failing row contains (12, license.test@example.com, x, Test User, 77AB-12, client, 2026-11-19 22:03:20.980437+03).
+DETAIL:  Failing row contains (12, license.test@example.com, x, Test User, 77AB-12, client, 2026-11-18 04:45:32.762605+03).
 ROLLBACK
 
 Тест 21. Название тарифа, отличающееся от существующего только регистром
@@ -155,21 +155,21 @@ ROLLBACK
 Ожидается: ERROR ... chk_users_full_name
 BEGIN
 psql:db/checks.sql:223: ERROR:  new row for relation "users" violates check constraint "chk_users_full_name"
-DETAIL:  Failing row contains (13, empty.name@example.com, x,    , null, client, 2026-11-19 22:03:20.980988+03).
+DETAIL:  Failing row contains (13, empty.name@example.com, x,    , null, client, 2026-11-18 04:45:32.762898+03).
 ROLLBACK
 
 Тест 23. Email длиннее 100 символов
 Ожидается: ERROR ... chk_users_email_length
 BEGIN
 psql:db/checks.sql:230: ERROR:  new row for relation "users" violates check constraint "chk_users_email_length"
-DETAIL:  Failing row contains (14, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., x, Test User, null, client, 2026-11-19 22:03:20.981143+03).
+DETAIL:  Failing row contains (14, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..., x, Test User, null, client, 2026-11-18 04:45:32.763029+03).
 ROLLBACK
 
 Тест 24. Запись обслуживания с пустым описанием
 Ожидается: ERROR ... chk_ml_description
 BEGIN
 psql:db/checks.sql:239: ERROR:  new row for relation "maintenance_logs" violates check constraint "chk_ml_description"
-DETAIL:  Failing row contains (9, 1, 2,  , 100.00, 2026-11-19 22:03:20.981285+03).
+DETAIL:  Failing row contains (9, 1, 2,  , 100.00, 2026-11-18 04:45:32.76317+03).
 ROLLBACK
 
 =============== C. Защита истории: удаление связанных записей ===============
