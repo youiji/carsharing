@@ -44,3 +44,8 @@ type LoginResponse struct {
 	ExpiresIn int    `json:"expires_in"`
 	User      User   `json:"user"`
 }
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}

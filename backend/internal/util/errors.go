@@ -41,4 +41,5 @@ var (
 	ErrEmailTaken         = newErr(http.StatusConflict, "email_taken", "Email уже занят")
 	ErrLicenseTaken       = newErr(http.StatusConflict, "license_taken", "Водительское удостоверение уже зарегистрировано")
 	ErrInvalidCredentials = newErr(http.StatusUnauthorized, "invalid_credentials", "Неверный email или пароль")
+	ErrWrongPassword      = newErr(http.StatusBadRequest, "wrong_password", "Неверный пароль")
 )

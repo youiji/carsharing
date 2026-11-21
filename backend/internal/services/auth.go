@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"carsharing/internal/dto"
@@ -14,6 +15,8 @@ import (
 type UserStore interface {
 	Create(ctx context.Context, u models.User) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
+	GetByID(ctx context.Context, id int64) (models.User, error)
+	UpdatePasswordHash(ctx context.Context, id int64, hash string) error
 }
 
 type AuthService struct {
@@ -102,4 +105,33 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (dto.Logi
 		ExpiresIn: int(s.tokens.TTL().Seconds()),
 		User:      dto.NewUser(user),
 	}, nil
+}
+
+func (s *AuthService) ChangePassword(ctx context.Context, userID int64, req dto.ChangePasswordRequest) error {
+	var v util.Validator
+	if req.CurrentPassword == "" {
+		v.Add("current_password", "обязательное поле")
+	}
+	v.Password("new_password", req.NewPassword)
+	if err := v.Err(); err != nil {
+		return err
+	}
+
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("load user: %w", err)
+	}
+	ok, err := util.CheckPassword(user.PasswordHash, req.CurrentPassword)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return util.ErrWrongPassword
+	}
+
+	hash, err := util.HashPassword(req.NewPassword)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePasswordHash(ctx, userID, hash)
 }

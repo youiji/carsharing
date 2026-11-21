@@ -19,11 +19,11 @@ import (
 	"carsharing/internal/util"
 )
 
+const testSecret = "e2e-secret-e2e-secret-e2e-secret-e2e"
+
 type env struct {
 	srv *httptest.Server
 }
-
-const testSecret = "e2e-secret-e2e-secret-e2e-secret-e2e"
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
@@ -96,6 +96,11 @@ type response struct {
 
 func (e *env) request(t *testing.T, method, path string, body any) response {
 	t.Helper()
+	return e.requestAs(t, "", method, path, body)
+}
+
+func (e *env) requestAs(t *testing.T, token, method, path string, body any) response {
+	t.Helper()
 	var reader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -110,6 +115,10 @@ func (e *env) request(t *testing.T, method, path string, body any) response {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
 	resp, err := e.srv.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -121,6 +130,16 @@ func (e *env) request(t *testing.T, method, path string, body any) response {
 		t.Fatalf("разбор ответа: %v", err)
 	}
 	return response{status: resp.StatusCode, body: out}
+}
+
+func (e *env) login(t *testing.T, email, password string) string {
+	t.Helper()
+	r := e.request(t, http.MethodPost, "/api/auth/login", map[string]any{"email": email, "password": password})
+	if r.status != http.StatusOK {
+		t.Fatalf("вход %s: статус %d, тело %v", email, r.status, r.body)
+	}
+	token, _ := r.body["token"].(string)
+	return token
 }
 
 func errorCode(r response) string {

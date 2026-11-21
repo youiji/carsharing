@@ -55,3 +55,14 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (models.U
 	}
 	return u, nil
 }
+
+func (r *UserRepository) UpdatePasswordHash(ctx context.Context, id int64, hash string) error {
+	tag, err := r.db.Exec(ctx, `UPDATE users SET password_hash = $1 WHERE id = $2`, hash, id)
+	if err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
