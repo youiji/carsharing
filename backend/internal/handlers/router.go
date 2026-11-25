@@ -15,18 +15,21 @@ type Deps struct {
 	Tokens *util.TokenManager
 	Users  middleware.UserLoader
 	Auth   *services.AuthService
+	Cars   *services.CarService
 }
 
 func NewRouter(d Deps) http.Handler {
 	mux := http.NewServeMux()
 	auth := &AuthHandler{svc: d.Auth}
 	authed := middleware.Auth(d.Tokens, d.Users)
+	cars := &CarHandler{svc: d.Cars}
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
 	mux.HandleFunc("POST /api/auth/login", auth.Login)
 	mux.Handle("GET /api/me", authed(http.HandlerFunc(auth.Me)))
 	mux.Handle("PUT /api/me/password", authed(http.HandlerFunc(auth.ChangePassword)))
+	mux.Handle("GET /api/cars", authed(http.HandlerFunc(cars.List)))
 
 	return mux
 }

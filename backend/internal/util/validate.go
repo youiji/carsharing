@@ -82,3 +82,13 @@ func NormalizeDriverLicense(s string) (string, bool) {
 	}
 	return s[:4] + " " + s[4:], true
 }
+
+var latinToCyrillic = strings.NewReplacer(
+	"A", "А", "B", "В", "E", "Е", "K", "К", "M", "М", "H", "Н",
+	"O", "О", "P", "Р", "C", "С", "T", "Т", "Y", "У", "X", "Х",
+)
+
+func NormalizePlate(s string) string {
+	s = strings.Join(strings.Fields(s), "")
+	return latinToCyrillic.Replace(strings.ToUpper(s))
+}
