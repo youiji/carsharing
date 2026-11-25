@@ -36,3 +36,18 @@ func (h *CarHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteJSON(w, http.StatusOK, list)
 }
+
+func (h *CarHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id, err := util.PathID(r, "id")
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	user, _ := middleware.CurrentUser(r.Context())
+	car, err := h.svc.Get(r.Context(), user, id)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, car)
+}

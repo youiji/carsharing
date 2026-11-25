@@ -11,11 +11,12 @@ import (
 )
 
 type Deps struct {
-	DB     *pgxpool.Pool
-	Tokens *util.TokenManager
-	Users  middleware.UserLoader
-	Auth   *services.AuthService
-	Cars   *services.CarService
+	DB      *pgxpool.Pool
+	Tokens  *util.TokenManager
+	Users   middleware.UserLoader
+	Auth    *services.AuthService
+	Cars    *services.CarService
+	Tariffs *services.TariffService
 }
 
 func NewRouter(d Deps) http.Handler {
@@ -23,6 +24,7 @@ func NewRouter(d Deps) http.Handler {
 	auth := &AuthHandler{svc: d.Auth}
 	authed := middleware.Auth(d.Tokens, d.Users)
 	cars := &CarHandler{svc: d.Cars}
+	tariffs := &TariffHandler{svc: d.Tariffs}
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
@@ -30,6 +32,8 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/me", authed(http.HandlerFunc(auth.Me)))
 	mux.Handle("PUT /api/me/password", authed(http.HandlerFunc(auth.ChangePassword)))
 	mux.Handle("GET /api/cars", authed(http.HandlerFunc(cars.List)))
+	mux.Handle("GET /api/cars/{id}", authed(http.HandlerFunc(cars.Get)))
+	mux.Handle("GET /api/tariffs", authed(http.HandlerFunc(tariffs.List)))
 
 	return mux
 }

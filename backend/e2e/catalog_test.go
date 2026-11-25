@@ -78,7 +78,7 @@ func TestCatalog(t *testing.T) {
 		name  string
 		query string
 	}{
-		{"инъекция через sort", "?sort=id3BDROP%20TABLE%20cars"},
+		{"инъекция через sort", "?sort=id%3BDROP%20TABLE%20cars"},
 		{"неверный order", "?order=sideways"},
 		{"неизвестный статус", "?status=flying"},
 		{"tariff_id не число", "?tariff_id=abc"},
@@ -96,6 +96,48 @@ func TestCatalog(t *testing.T) {
 		r := e.request(t, http.MethodGet, "/api/cars", nil)
 		if r.status != http.StatusUnauthorized {
 			t.Errorf("статус %d, ожидался 401", r.status)
+		}
+	})
+}
+
+func TestCarCard(t *testing.T) {
+	e := newEnv(t)
+	dmitry := e.login(t, "dmitry.ivanov@example.com", "Client123!")
+	maria := e.login(t, "maria.volkova@example.com", "Client123!")
+	manager := e.login(t, "manager1@carsharing.local", "Manager123!")
+
+	cases := []struct {
+		name  string
+		token string
+		path  string
+		want  int
+	}{
+		{"клиент: свободная машина", dmitry, "/api/cars/1", http.StatusOK},
+		{"клиент: машина на обслуживании", dmitry, "/api/cars/7", http.StatusNotFound},
+		{"клиент: чужое бронирование", dmitry, "/api/cars/12", http.StatusNotFound},
+		{"клиент: своё бронирование", maria, "/api/cars/4", http.StatusOK},
+		{"менеджер: любая машина", manager, "/api/cars/7", http.StatusOK},
+		{"несуществующий id", manager, "/api/cars/9999", http.StatusNotFound},
+		{"id не число", manager, "/api/cars/abc", http.StatusNotFound},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := e.requestAs(t, tc.token, http.MethodGet, tc.path, nil)
+			if r.status != tc.want {
+				t.Errorf("статус %d, ожидался %d, тело %v", r.status, tc.want, r.body)
+			}
+		})
+	}
+
+	t.Run("тарифы", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodGet, "/api/tariffs", nil)
+		items, _ := r.body["items"].([]any)
+		if r.status != http.StatusOK || len(items) != 3 {
+			t.Fatalf("получили %d и %d тарифов, ожидали 200 и 3", r.status, len(items))
+		}
+		first, _ := items[0].(map[string]any)
+		if first["name"] != "Эконом" || first["price_per_min"] != 8.9 {
+			t.Errorf("первый тариф %v", first)
 		}
 	})
 }

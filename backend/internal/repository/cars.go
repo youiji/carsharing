@@ -97,3 +97,23 @@ func (r *CarRepository) List(ctx context.Context, f models.CarFilter) ([]models.
 	}
 	return out, rows.Err()
 }
+
+func (r *CarRepository) GetByID(ctx context.Context, id int64) (models.Car, error) {
+	c, err := scanCar(r.db.QueryRow(ctx, carSelect+` WHERE c.id = $1`, id))
+	if err != nil {
+		return models.Car{}, fmt.Errorf("get car: %w", notFound(err))
+	}
+	return c, nil
+}
+
+func (r *CarRepository) InUserOpenRental(ctx context.Context, carID, userID int64) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM rentals
+		               WHERE car_id = $1 AND user_id = $2 AND status IN ('booked', 'active'))`,
+		carID, userID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check car rental: %w", err)
+	}
+	return exists, nil
+}
