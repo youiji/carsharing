@@ -46,4 +46,5 @@ var (
 	ErrCarUnavailable      = newErr(http.StatusConflict, "car_unavailable", "Автомобиль нельзя забронировать")
 	ErrUserHasActiveRental = newErr(http.StatusConflict, "user_has_active_rental", "У пользователя есть бронирование или активная аренда")
 	ErrInvalidTransition   = newErr(http.StatusConflict, "invalid_status_transition", "Недопустимая смена статуса")
+	ErrBookingExpired      = newErr(http.StatusConflict, "booking_expired", "Срок бронирования истёк: бронирование отменено, списано ожидание")
 )

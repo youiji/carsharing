@@ -4,6 +4,10 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"carsharing/internal/app"
 	"carsharing/internal/config"
@@ -27,6 +31,9 @@ func main() {
 	router := app.NewHandler(pool, tokens)
 
 	log.Println("сервер запущен на", cfg.Addr)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go app.RunBookingExpiry(ctx, pool, 15*time.Second)
 	if err := http.ListenAndServe(cfg.Addr, router); err != nil {
 		log.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -184,6 +185,92 @@ func TestRentalFlow(t *testing.T) {
 		r := e.requestAs(t, dmitry, http.MethodPost, path(9999, "start"), nil)
 		if r.status != http.StatusNotFound {
 			t.Errorf("статус %d, ожидался 404", r.status)
+		}
+	})
+}
+
+func (e *env) exec(t *testing.T, sql string, args ...any) {
+	t.Helper()
+	if _, err := e.pool.Exec(context.Background(), sql, args...); err != nil {
+		t.Fatalf("exec: %v", err)
+	}
+}
+
+func TestRentalLists(t *testing.T) {
+	e := newEnv(t)
+	ivan := e.login(t, "ivan.petrov@example.com", "Client123!")
+	anna := e.login(t, "anna.sidorova@example.com", "Client123!")
+	manager := e.login(t, "manager1@carsharing.local", "Manager123!")
+
+	total := func(r response) float64 { n, _ := r.body["total"].(float64); return n }
+
+	cases := []struct {
+		name   string
+		token  string
+		path   string
+		status int
+		total  float64
+	}{
+		{"мои аренды Ивана", ivan, "/api/rentals/my", http.StatusOK, 3},
+		{"мои завершённые", ivan, "/api/rentals/my?status=completed", http.StatusOK, 2},
+		{"все аренды у менеджера", manager, "/api/rentals", http.StatusOK, 14},
+		{"поиск по ФИО", manager, "/api/rentals?q=петров", http.StatusOK, 3},
+		{"фильтр по машине", manager, "/api/rentals?car_id=1", http.StatusOK, 2},
+		{"клиенту список всех нельзя", ivan, "/api/rentals", http.StatusForbidden, 0},
+		{"менеджеру мои аренды нельзя", manager, "/api/rentals/my", http.StatusForbidden, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := e.requestAs(t, tc.token, http.MethodGet, tc.path, nil)
+			if r.status != tc.status || (tc.status == http.StatusOK && total(r) != tc.total) {
+				t.Errorf("получили %d, total %v, ожидали %d и %v", r.status, total(r), tc.status, tc.total)
+			}
+		})
+	}
+
+	t.Run("своя аренда", func(t *testing.T) {
+		r := e.requestAs(t, ivan, http.MethodGet, "/api/rentals/11", nil)
+		if r.status != http.StatusOK || r.body["status"] != "active" {
+			t.Errorf("получили %d %v", r.status, r.body)
+		}
+	})
+	t.Run("чужая аренда", func(t *testing.T) {
+		r := e.requestAs(t, anna, http.MethodGet, "/api/rentals/11", nil)
+		if r.status != http.StatusForbidden {
+			t.Errorf("статус %d, ожидался 403", r.status)
+		}
+	})
+}
+
+func TestBookingExpiry(t *testing.T) {
+	e := newEnv(t)
+	maria := e.login(t, "maria.volkova@example.com", "Client123!")
+	dmitry := e.login(t, "dmitry.ivanov@example.com", "Client123!")
+	manager := e.login(t, "manager1@carsharing.local", "Manager123!")
+
+	// Бронирования Марии (13) и Олега (14) «сделаны» 25 минут назад
+	e.exec(t, `UPDATE rentals SET booked_at = now() - interval '25 minutes' WHERE id IN (13, 14)`)
+
+	t.Run("старт просроченного бронирования", func(t *testing.T) {
+		r := e.requestAs(t, maria, http.MethodPost, "/api/rentals/13/start", nil)
+		if r.status != http.StatusConflict || errorCode(r) != "booking_expired" {
+			t.Fatalf("получили %d %q", r.status, errorCode(r))
+		}
+		rental := e.requestAs(t, maria, http.MethodGet, "/api/rentals/13", nil)
+		// 20 минут ожидания по 2.00
+		if rental.body["status"] != "cancelled" || rental.body["total_cost"] != 40.0 {
+			t.Errorf("аренда после просрочки: %v", rental.body)
+		}
+	})
+
+	t.Run("бронирование снимает чужие просроченные брони", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, "/api/rentals", map[string]any{"car_id": 12})
+		if r.status != http.StatusCreated {
+			t.Fatalf("машина Олега не освободилась: %d %v", r.status, r.body)
+		}
+		oleg := e.requestAs(t, manager, http.MethodGet, "/api/rentals/14", nil)
+		if oleg.body["status"] != "cancelled" {
+			t.Errorf("бронирование Олега: %v", oleg.body["status"])
 		}
 	})
 }

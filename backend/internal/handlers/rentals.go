@@ -7,6 +7,7 @@ import (
 	"carsharing/internal/dto"
 	"carsharing/internal/middleware"
 	"carsharing/internal/models"
+	"carsharing/internal/repository"
 	"carsharing/internal/services"
 	"carsharing/internal/util"
 )
@@ -74,4 +75,46 @@ func (h *RentalHandler) action(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	util.WriteJSON(w, http.StatusOK, rental)
+}
+
+func (h *RentalHandler) Get(w http.ResponseWriter, r *http.Request) {
+	h.action(w, r, h.svc.Get)
+}
+
+func (h *RentalHandler) ListMy(w http.ResponseWriter, r *http.Request) {
+	q := util.NewListQuery(r.URL.Query())
+	f := models.RentalFilter{Status: q.Enum("status", models.RentalStatuses...)}
+	f.Sort, f.Desc = q.Sort(repository.RentalSortNames...)
+	if err := q.Err(); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	user, _ := middleware.CurrentUser(r.Context())
+	list, err := h.svc.ListMy(r.Context(), user, f)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, list)
+}
+
+func (h *RentalHandler) List(w http.ResponseWriter, r *http.Request) {
+	q := util.NewListQuery(r.URL.Query())
+	f := models.RentalFilter{
+		Search: q.Search(),
+		Status: q.Enum("status", models.RentalStatuses...),
+		UserID: q.PositiveInt("user_id"),
+		CarID:  q.PositiveInt("car_id"),
+	}
+	f.Sort, f.Desc = q.Sort(repository.RentalSortNames...)
+	if err := q.Err(); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	list, err := h.svc.List(r.Context(), f)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, list)
 }

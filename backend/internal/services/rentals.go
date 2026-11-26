@@ -30,6 +30,9 @@ func (s *RentalService) Book(ctx context.Context, user models.User, req dto.Crea
 	if user.DriverLicense == nil || *user.DriverLicense == "" {
 		return dto.Rental{}, util.ErrLicenseRequired
 	}
+	if _, err := s.ExpireBookings(ctx); err != nil {
+		return dto.Rental{}, err
+	}
 
 	var rentalID int64
 	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
@@ -109,6 +112,7 @@ func ceilMinutes(d time.Duration) int64 {
 }
 
 func (s *RentalService) Start(ctx context.Context, user models.User, rentalID int64) (dto.Rental, error) {
+	expired := false
 	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
 		rental, err := lockOwned(ctx, tx, user, rentalID, false)
 		if err != nil {
@@ -117,6 +121,10 @@ func (s *RentalService) Start(ctx context.Context, user models.User, rentalID in
 		if rental.Status != models.RentalBooked {
 			return transitionErr(rental.Status, "начать поездку можно только по бронированию")
 		}
+		if isExpired(rental) {
+			expired = true
+			return expire(ctx, tx, rental)
+		}
 		if err := tx.Start(ctx, rental.ID, now()); err != nil {
 			return err
 		}
@@ -124,6 +132,9 @@ func (s *RentalService) Start(ctx context.Context, user models.User, rentalID in
 	})
 	if err != nil {
 		return dto.Rental{}, err
+	}
+	if expired {
+		return dto.Rental{}, util.ErrBookingExpired
 	}
 	return s.get(ctx, rentalID)
 }
@@ -156,6 +167,10 @@ func (s *RentalService) Finish(ctx context.Context, user models.User, rentalID i
 func (s *RentalService) Cancel(ctx context.Context, user models.User, rentalID int64) (dto.Rental, error) {
 	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
 		rental, err := lockOwned(ctx, tx, user, rentalID, isStaff(user))
+
+		if isExpired(rental) {
+			return expire(ctx, tx, rental)
+		}
 		if err != nil {
 			return err
 		}
@@ -227,4 +242,66 @@ func validateFinish(req dto.FinishRentalRequest) error {
 		v.Check(*req.Longitude >= -180 && *req.Longitude <= 180, "longitude", "должно быть от -180 до 180")
 	}
 	return v.Err()
+}
+
+func (s *RentalService) ExpireBookings(ctx context.Context) (int, error) {
+	n := 0
+	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
+		expired, err := tx.LockExpiredBookings(ctx, now().Add(-models.BookingTTL))
+		if err != nil {
+			return err
+		}
+		for _, r := range expired {
+			if err := expire(ctx, tx, r); err != nil {
+				return err
+			}
+		}
+		n = len(expired)
+		return nil
+	})
+	return n, err
+}
+
+func isExpired(r models.Rental) bool {
+	return !now().Before(r.BookedAt.Add(models.BookingTTL))
+}
+
+func expire(ctx context.Context, tx *repository.RentalTx, r models.Rental) error {
+	end := r.BookedAt.Add(models.BookingTTL)
+	if err := tx.Cancel(ctx, r.ID, end, CancellationFee(r.BookedAt, end, r.WaitingPerMin)); err != nil {
+		return err
+	}
+	return tx.SetCarStatus(ctx, r.CarID, models.CarBooked, models.CarAvailable)
+}
+
+func (s *RentalService) Get(ctx context.Context, user models.User, rentalID int64) (dto.Rental, error) {
+	rental, err := s.repo.GetByID(ctx, rentalID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return dto.Rental{}, util.ErrNotFound.WithMessage("Аренда не найдена")
+	}
+	if err != nil {
+		return dto.Rental{}, err
+	}
+	if !isStaff(user) && rental.UserID != user.ID {
+		return dto.Rental{}, util.ErrForbidden.WithMessage("Это чужая аренда")
+	}
+	return dto.NewRental(rental), nil
+}
+
+func (s *RentalService) ListMy(ctx context.Context, user models.User, f models.RentalFilter) (dto.List[dto.Rental], error) {
+	f.UserID = &user.ID
+	f.CarID, f.Search = nil, ""
+	return s.list(ctx, f)
+}
+
+func (s *RentalService) List(ctx context.Context, f models.RentalFilter) (dto.List[dto.Rental], error) {
+	return s.list(ctx, f)
+}
+
+func (s *RentalService) list(ctx context.Context, f models.RentalFilter) (dto.List[dto.Rental], error) {
+	rentals, err := s.repo.List(ctx, f)
+	if err != nil {
+		return dto.List[dto.Rental]{}, err
+	}
+	return dto.NewList(dto.NewRentals(rentals)), nil
 }

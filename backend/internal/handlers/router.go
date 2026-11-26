@@ -29,6 +29,7 @@ func NewRouter(d Deps) http.Handler {
 	tariffs := &TariffHandler{svc: d.Tariffs}
 	rentals := &RentalHandler{svc: d.Rentals}
 	clientOnly := middleware.RequireRole(models.RoleClient)
+	staffOnly := middleware.RequireRole(models.RoleManager, models.RoleAdmin)
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
@@ -42,5 +43,8 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/rentals/{id}/start", authed(clientOnly(http.HandlerFunc(rentals.Start))))
 	mux.Handle("POST /api/rentals/{id}/finish", authed(clientOnly(http.HandlerFunc(rentals.Finish))))
 	mux.Handle("POST /api/rentals/{id}/cancel", authed(http.HandlerFunc(rentals.Cancel)))
+	mux.Handle("GET /api/rentals/my", authed(clientOnly(http.HandlerFunc(rentals.ListMy))))
+	mux.Handle("GET /api/rentals", authed(staffOnly(http.HandlerFunc(rentals.List))))
+	mux.Handle("GET /api/rentals/{id}", authed(http.HandlerFunc(rentals.Get)))
 	return mux
 }

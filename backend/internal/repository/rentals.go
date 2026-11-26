@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -167,4 +168,88 @@ func (t *RentalTx) ReleaseCar(ctx context.Context, carID int64, loc models.CarLo
 		                longitude = COALESCE($3, longitude)
 		WHERE id = $1 AND status = 'in_use'`,
 		carID, loc.Latitude, loc.Longitude)
+}
+
+var RentalSortNames = []string{"id", "booked_at", "total_cost", "status"}
+
+var rentalSortColumns = map[string]string{
+	"id":         "r.id",
+	"booked_at":  "r.booked_at",
+	"total_cost": "r.total_cost",
+	"status":     "r.status",
+}
+
+func (r *RentalRepository) List(ctx context.Context, f models.RentalFilter) ([]models.Rental, error) {
+	var (
+		where []string
+		args  []any
+	)
+	arg := func(v any) string {
+		args = append(args, v)
+		return fmt.Sprintf("$%d", len(args))
+	}
+	if f.UserID != nil {
+		where = append(where, "r.user_id = "+arg(*f.UserID))
+	}
+	if f.CarID != nil {
+		where = append(where, "r.car_id = "+arg(*f.CarID))
+	}
+	if f.Status != nil {
+		where = append(where, "r.status = "+arg(*f.Status))
+	}
+	if f.Search != "" {
+		like := arg(util.LikeContains(f.Search))
+		plate := arg(util.LikeContains(util.NormalizePlate(f.Search)))
+		where = append(where, fmt.Sprintf(
+			"(u.full_name ILIKE %[1]s OR c.plate_number ILIKE %[1]s OR c.plate_number ILIKE %[2]s)", like, plate))
+	}
+
+	query := rentalSelect
+	if len(where) > 0 {
+		query += " WHERE " + strings.Join(where, " AND ")
+	}
+	col, ok := rentalSortColumns[f.Sort]
+	if !ok {
+		col = rentalSortColumns["id"]
+	}
+	dir := "ASC"
+	if f.Desc {
+		dir = "DESC"
+	}
+	query += fmt.Sprintf(" ORDER BY %s %s NULLS LAST, r.id %s", col, dir, dir)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list rentals: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.Rental
+	for rows.Next() {
+		rental, err := scanRental(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan rental: %w", err)
+		}
+		out = append(out, rental)
+	}
+	return out, rows.Err()
+}
+
+func (t *RentalTx) LockExpiredBookings(ctx context.Context, cutoff time.Time) ([]models.Rental, error) {
+	rows, err := t.tx.Query(ctx, `
+		SELECT id, user_id, tariff_id, car_id, booked_at, started_at, ended_at,
+		       price_per_min, waiting_per_min, total_cost, status
+		FROM rentals
+		WHERE status = 'booked' AND booked_at <= $1
+		ORDER BY id
+		FOR UPDATE SKIP LOCKED`, cutoff)
+	if err != nil {
+		return nil, fmt.Errorf("lock expired bookings: %w", err)
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.Rental, error) {
+		var r models.Rental
+		err := row.Scan(&r.ID, &r.UserID, &r.TariffID, &r.CarID, &r.BookedAt, &r.StartedAt, &r.EndedAt,
+			&r.PricePerMin, &r.WaitingPerMin, &r.TotalCost, &r.Status)
+		return r, err
+	})
 }

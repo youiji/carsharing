@@ -37,3 +37,14 @@ type CarLocation struct {
 	Latitude  *float64
 	Longitude *float64
 }
+
+var RentalStatuses = []string{RentalBooked, RentalActive, RentalCompleted, RentalCancelled}
+
+type RentalFilter struct {
+	UserID *int64
+	CarID  *int64
+	Status *string
+	Search string
+	Sort   string
+	Desc   bool
+}

@@ -22,7 +22,8 @@ import (
 const testSecret = "e2e-secret-e2e-secret-e2e-secret-e2e"
 
 type env struct {
-	srv *httptest.Server
+	srv  *httptest.Server
+	pool *pgxpool.Pool
 }
 
 func newEnv(t *testing.T) *env {
@@ -52,7 +53,7 @@ func newEnv(t *testing.T) *env {
 		srv.Close()
 		pool.Close()
 	})
-	return &env{srv: srv}
+	return &env{srv: srv, pool: pool}
 }
 
 func resetDB(t *testing.T, ctx context.Context, url string) {

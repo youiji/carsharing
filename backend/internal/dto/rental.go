@@ -63,3 +63,11 @@ type FinishRentalRequest struct {
 	Latitude  *float64 `json:"latitude"`
 	Longitude *float64 `json:"longitude"`
 }
+
+func NewRentals(rs []models.Rental) []Rental {
+	out := make([]Rental, len(rs))
+	for i, r := range rs {
+		out[i] = NewRental(r)
+	}
+	return out
+}

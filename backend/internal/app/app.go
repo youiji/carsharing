@@ -1,7 +1,10 @@
 package app
 
 import (
+	"context"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -23,4 +26,22 @@ func NewHandler(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
 		Tariffs: services.NewTariffService(repository.NewTariffRepository(pool)),
 		Rentals: services.NewRentalService(repository.NewRentalRepository(pool)),
 	})
+}
+
+func RunBookingExpiry(ctx context.Context, pool *pgxpool.Pool, every time.Duration) {
+	svc := services.NewRentalService(repository.NewRentalRepository(pool))
+	ticker := time.NewTicker(every)
+	defer ticker.Stop()
+	for {
+		if n, err := svc.ExpireBookings(ctx); err != nil && ctx.Err() == nil {
+			log.Printf("booking expiry: %v", err)
+		} else if n > 0 {
+			log.Printf("booking expiry: отменено просроченных бронирований: %d", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
