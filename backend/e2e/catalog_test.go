@@ -51,6 +51,7 @@ func TestCatalog(t *testing.T) {
 		{"поиск по номеру латиницей", manager, "?q=a101", 1},
 		{"клиент ищет kia", client, "?q=kia", 1},
 		{"фильтр по тарифу", manager, "?tariff_id=3", 4},
+		{"менеджер фильтрует in_use", manager, "?status=in_use", 2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

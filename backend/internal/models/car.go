@@ -7,7 +7,7 @@ import (
 const (
 	CarAvailable      = "available"
 	CarBooked         = "booked"
-	CarInUse          = "int_use"
+	CarInUse          = "in_use"
 	CarMaintenance    = "maintenance"
 	carDecommissioned = "decommissioned"
 )

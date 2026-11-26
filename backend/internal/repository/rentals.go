@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +14,18 @@ import (
 
 type RentalRepository struct {
 	db *pgxpool.Pool
+}
+
+type RentalTx struct {
+	tx pgx.Tx
+}
+
+type CarForBooking struct {
+	ID            int64
+	Status        string
+	TariffID      int64
+	PricePerMin   util.Money
+	WaitingPerMin util.Money
 }
 
 func NewRentalRepository(db *pgxpool.Pool) *RentalRepository {
@@ -47,18 +60,6 @@ func (r *RentalRepository) InTx(ctx context.Context, fn func(tx *RentalTx) error
 	return pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
 		return fn(&RentalTx{tx: tx})
 	})
-}
-
-type RentalTx struct {
-	tx pgx.Tx
-}
-
-type CarForBooking struct {
-	ID            int64
-	Status        string
-	TariffID      int64
-	PricePerMin   util.Money
-	WaitingPerMin util.Money
 }
 
 func (t *RentalTx) LockCar(ctx context.Context, carID int64) (CarForBooking, error) {
@@ -124,4 +125,46 @@ func (t *RentalTx) execOne(ctx context.Context, op, sql string, args ...any) err
 			op, tag.RowsAffected())
 	}
 	return nil
+}
+
+func (t *RentalTx) LockRental(ctx context.Context, id int64) (models.Rental, error) {
+	var r models.Rental
+	err := t.tx.QueryRow(ctx, `
+		SELECT id, user_id, tariff_id, car_id, booked_at, started_at, ended_at,
+		       price_per_min, waiting_per_min, total_cost, status
+		FROM rentals WHERE id = $1
+		FOR UPDATE`, id).
+		Scan(&r.ID, &r.UserID, &r.TariffID, &r.CarID, &r.BookedAt, &r.StartedAt, &r.EndedAt,
+			&r.PricePerMin, &r.WaitingPerMin, &r.TotalCost, &r.Status)
+	if err != nil {
+		return models.Rental{}, fmt.Errorf("lock rental: %w", notFound(err))
+	}
+	return r, nil
+}
+
+func (t *RentalTx) Start(ctx context.Context, id int64, startedAt time.Time) error {
+	return t.execOne(ctx, "start rental", `
+		UPDATE rentals SET status = 'active', started_at = $2
+		WHERE id = $1 AND status = 'booked'`, id, startedAt)
+}
+
+func (t *RentalTx) Complete(ctx context.Context, id int64, endedAt time.Time, cost util.Money) error {
+	return t.execOne(ctx, "complete rental", `
+		UPDATE rentals SET status = 'completed', ended_at = $2, total_cost = $3
+		WHERE id = $1 AND status = 'active'`, id, endedAt, cost)
+}
+
+func (t *RentalTx) Cancel(ctx context.Context, id int64, cancelledAt time.Time, fee util.Money) error {
+	return t.execOne(ctx, "cancel rental", `
+		UPDATE rentals SET status = 'cancelled', ended_at = $2, total_cost = $3
+		WHERE id = $1 AND status = 'booked'`, id, cancelledAt, fee)
+}
+
+func (t *RentalTx) ReleaseCar(ctx context.Context, carID int64, loc models.CarLocation) error {
+	return t.execOne(ctx, "release car", `
+		UPDATE cars SET status    = 'available',
+		                latitude  = COALESCE($2, latitude),
+		                longitude = COALESCE($3, longitude)
+		WHERE id = $1 AND status = 'in_use'`,
+		carID, loc.Latitude, loc.Longitude)
 }

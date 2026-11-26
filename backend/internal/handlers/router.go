@@ -39,5 +39,8 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/cars/{id}", authed(http.HandlerFunc(cars.Get)))
 	mux.Handle("GET /api/tariffs", authed(http.HandlerFunc(tariffs.List)))
 	mux.Handle("POST /api/rentals", authed(clientOnly(http.HandlerFunc(rentals.Book))))
+	mux.Handle("POST /api/rentals/{id}/start", authed(clientOnly(http.HandlerFunc(rentals.Start))))
+	mux.Handle("POST /api/rentals/{id}/finish", authed(clientOnly(http.HandlerFunc(rentals.Finish))))
+	mux.Handle("POST /api/rentals/{id}/cancel", authed(http.HandlerFunc(rentals.Cancel)))
 	return mux
 }

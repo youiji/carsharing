@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"testing"
@@ -96,5 +97,93 @@ func TestBook(t *testing.T) {
 			}
 		}
 		t.Errorf("ни один не смог забронировать машину 5: %v", statuses)
+	})
+}
+
+func TestRentalFlow(t *testing.T) {
+	e := newEnv(t)
+	dmitry := e.login(t, "dmitry.ivanov@example.com", "Client123!")
+	ivan := e.login(t, "ivan.petrov@example.com", "Client123!")
+	maria := e.login(t, "maria.volkova@example.com", "Client123!")
+	manager := e.login(t, "manager1@carsharing.local", "Manager123!")
+
+	path := func(id any, action string) string { return fmt.Sprintf("/api/rentals/%v/%s", id, action) }
+
+	booked := e.requestAs(t, dmitry, http.MethodPost, "/api/rentals", map[string]any{"car_id": 1})
+	if booked.status != http.StatusCreated {
+		t.Fatalf("бронирование: %d %v", booked.status, booked.body)
+	}
+	id := booked.body["id"]
+
+	t.Run("нельзя завершить бронирование", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(id, "finish"), nil)
+		if r.status != http.StatusConflict || errorCode(r) != "invalid_status_transition" {
+			t.Errorf("получили %d %q", r.status, errorCode(r))
+		}
+	})
+
+	t.Run("старт", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(id, "start"), nil)
+		if r.status != http.StatusOK || r.body["status"] != "active" || r.body["started_at"] == nil {
+			t.Fatalf("получили %d %v", r.status, r.body)
+		}
+	})
+
+	t.Run("чужую поездку не завершить", func(t *testing.T) {
+		r := e.requestAs(t, ivan, http.MethodPost, path(id, "finish"), nil)
+		if r.status != http.StatusForbidden {
+			t.Errorf("статус %d, ожидался 403", r.status)
+		}
+	})
+
+	t.Run("одна координата без второй", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(id, "finish"), map[string]any{"latitude": 55.8})
+		if r.status != http.StatusBadRequest {
+			t.Errorf("статус %d, ожидался 400", r.status)
+		}
+	})
+
+	t.Run("завершение", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(id, "finish"), map[string]any{"latitude": 55.8, "longitude": 37.5})
+		if r.status != http.StatusOK || r.body["status"] != "completed" {
+			t.Fatalf("получили %d %v", r.status, r.body)
+		}
+		// 1 минута ожидания (2.00) + минимум 1 минута поездки (8.90)
+		if r.body["total_cost"] != 10.9 {
+			t.Errorf("стоимость %v, ожидалась 10.9", r.body["total_cost"])
+		}
+		car := e.requestAs(t, manager, http.MethodGet, "/api/cars/1", nil)
+		if car.body["status"] != "available" || car.body["latitude"] != 55.8 {
+			t.Errorf("машина после поездки: %v", car.body)
+		}
+	})
+
+	t.Run("повторное завершение", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(id, "finish"), nil)
+		if r.status != http.StatusConflict {
+			t.Errorf("статус %d, ожидался 409", r.status)
+		}
+	})
+
+	t.Run("клиент отменяет своё бронирование — платно", func(t *testing.T) {
+		r := e.requestAs(t, maria, http.MethodPost, path(13, "cancel"), nil)
+		cost, _ := r.body["total_cost"].(float64)
+		if r.status != http.StatusOK || r.body["status"] != "cancelled" || cost <= 0 {
+			t.Errorf("получили %d %v", r.status, r.body)
+		}
+	})
+
+	t.Run("менеджер отменяет чужое бронирование — бесплатно", func(t *testing.T) {
+		r := e.requestAs(t, manager, http.MethodPost, path(14, "cancel"), nil)
+		if r.status != http.StatusOK || r.body["total_cost"] != 0.0 {
+			t.Errorf("получили %d %v", r.status, r.body)
+		}
+	})
+
+	t.Run("несуществующая аренда", func(t *testing.T) {
+		r := e.requestAs(t, dmitry, http.MethodPost, path(9999, "start"), nil)
+		if r.status != http.StatusNotFound {
+			t.Errorf("статус %d, ожидался 404", r.status)
+		}
 	})
 }

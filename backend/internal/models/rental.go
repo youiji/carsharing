@@ -10,7 +10,7 @@ const (
 	RentalBooked    = "booked"
 	RentalActive    = "active"
 	RentalCompleted = "completed"
-	RentalCanceled  = "canceled"
+	RentalCancelled = "cancelled"
 )
 
 const BookingTTL = 20 * time.Minute
@@ -31,4 +31,9 @@ type Rental struct {
 	UserFullName   string
 	CarBrandModel  string
 	CarPlateNumber string
+}
+
+type CarLocation struct {
+	Latitude  *float64
+	Longitude *float64
 }

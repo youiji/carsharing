@@ -89,3 +89,142 @@ func (s *RentalService) Book(ctx context.Context, user models.User, req dto.Crea
 	}
 	return dto.NewRental(rental), nil
 }
+
+func CalcRentalCost(bookedAt, startedAt, endedAt time.Time, pricePerMin, waitingPerMin util.Money) util.Money {
+	rideMin := max(1, ceilMinutes(endedAt.Sub(startedAt)))
+	waitMin := ceilMinutes(startedAt.Sub(bookedAt))
+	return pricePerMin*util.Money(rideMin) + waitingPerMin*util.Money(waitMin)
+}
+
+func CancellationFee(bookedAt, cancelledAt time.Time, waitingPerMin util.Money) util.Money {
+	minutes := min(ceilMinutes(cancelledAt.Sub(bookedAt)), int64(models.BookingTTL/time.Minute))
+	return waitingPerMin * util.Money(minutes)
+}
+
+func ceilMinutes(d time.Duration) int64 {
+	if d <= 0 {
+		return 0
+	}
+	return int64((d + time.Minute - 1) / time.Minute)
+}
+
+func (s *RentalService) Start(ctx context.Context, user models.User, rentalID int64) (dto.Rental, error) {
+	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
+		rental, err := lockOwned(ctx, tx, user, rentalID, false)
+		if err != nil {
+			return err
+		}
+		if rental.Status != models.RentalBooked {
+			return transitionErr(rental.Status, "начать поездку можно только по бронированию")
+		}
+		if err := tx.Start(ctx, rental.ID, now()); err != nil {
+			return err
+		}
+		return tx.SetCarStatus(ctx, rental.CarID, models.CarBooked, models.CarInUse)
+	})
+	if err != nil {
+		return dto.Rental{}, err
+	}
+	return s.get(ctx, rentalID)
+}
+
+func (s *RentalService) Finish(ctx context.Context, user models.User, rentalID int64, req dto.FinishRentalRequest) (dto.Rental, error) {
+	if err := validateFinish(req); err != nil {
+		return dto.Rental{}, err
+	}
+	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
+		rental, err := lockOwned(ctx, tx, user, rentalID, false)
+		if err != nil {
+			return err
+		}
+		if rental.Status != models.RentalActive || rental.StartedAt == nil {
+			return transitionErr(rental.Status, "завершить можно только начатую поездку")
+		}
+		endedAt := now()
+		cost := CalcRentalCost(rental.BookedAt, *rental.StartedAt, endedAt, rental.PricePerMin, rental.WaitingPerMin)
+		if err := tx.Complete(ctx, rental.ID, endedAt, cost); err != nil {
+			return err
+		}
+		return tx.ReleaseCar(ctx, rental.CarID, models.CarLocation{Latitude: req.Latitude, Longitude: req.Longitude})
+	})
+	if err != nil {
+		return dto.Rental{}, err
+	}
+	return s.get(ctx, rentalID)
+}
+
+func (s *RentalService) Cancel(ctx context.Context, user models.User, rentalID int64) (dto.Rental, error) {
+	err := s.repo.InTx(ctx, func(tx *repository.RentalTx) error {
+		rental, err := lockOwned(ctx, tx, user, rentalID, isStaff(user))
+		if err != nil {
+			return err
+		}
+		if rental.Status != models.RentalBooked {
+			return transitionErr(rental.Status, "отменить можно только бронирование")
+		}
+		cancelledAt := now()
+		fee := util.Money(0)
+		if !isStaff(user) {
+			fee = CancellationFee(rental.BookedAt, cancelledAt, rental.WaitingPerMin)
+		}
+		if err := tx.Cancel(ctx, rental.ID, cancelledAt, fee); err != nil {
+			return err
+		}
+		return tx.SetCarStatus(ctx, rental.CarID, models.CarBooked, models.CarAvailable)
+	})
+	if err != nil {
+		return dto.Rental{}, err
+	}
+	return s.get(ctx, rentalID)
+}
+
+func (s *RentalService) get(ctx context.Context, id int64) (dto.Rental, error) {
+	rental, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return dto.Rental{}, err
+	}
+	return dto.NewRental(rental), nil
+}
+
+func lockOwned(ctx context.Context, tx *repository.RentalTx, user models.User, id int64, anyOwner bool) (models.Rental, error) {
+	rental, err := tx.LockRental(ctx, id)
+	if errors.Is(err, repository.ErrNotFound) {
+		return models.Rental{}, util.ErrNotFound.WithMessage("Аренда не найдена")
+	}
+	if err != nil {
+		return models.Rental{}, err
+	}
+	if !anyOwner && rental.UserID != user.ID {
+		return models.Rental{}, util.ErrForbidden.WithMessage("Это чужая аренда")
+	}
+	return rental, nil
+}
+
+func isStaff(u models.User) bool {
+	return u.Role == models.RoleManager || u.Role == models.RoleAdmin
+}
+
+var rentalStatusNames = map[string]string{
+	models.RentalBooked:    "забронирована",
+	models.RentalActive:    "в поездке",
+	models.RentalCompleted: "завершена",
+	models.RentalCancelled: "отменена",
+}
+
+func transitionErr(status, hint string) error {
+	return util.ErrInvalidTransition.WithMessage("Аренда " + rentalStatusNames[status] + ": " + hint)
+}
+
+func validateFinish(req dto.FinishRentalRequest) error {
+	var v util.Validator
+	if (req.Latitude == nil) != (req.Longitude == nil) {
+		v.Add("latitude", "latitude и longitude передаются только вместе")
+	}
+	if req.Latitude != nil {
+		v.Check(*req.Latitude >= -90 && *req.Latitude <= 90, "latitude", "должно быть от -90 до 90")
+	}
+	if req.Longitude != nil {
+		v.Check(*req.Longitude >= -180 && *req.Longitude <= 180, "longitude", "должно быть от -180 до 180")
+	}
+	return v.Err()
+}

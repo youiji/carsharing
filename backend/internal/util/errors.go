@@ -45,4 +45,5 @@ var (
 	ErrLicenseRequired     = newErr(http.StatusForbidden, "license_required", "У клиента не заполнено водительское удостоверение")
 	ErrCarUnavailable      = newErr(http.StatusConflict, "car_unavailable", "Автомобиль нельзя забронировать")
 	ErrUserHasActiveRental = newErr(http.StatusConflict, "user_has_active_rental", "У пользователя есть бронирование или активная аренда")
+	ErrInvalidTransition   = newErr(http.StatusConflict, "invalid_status_transition", "Недопустимая смена статуса")
 )

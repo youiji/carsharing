@@ -92,3 +92,9 @@ func NormalizePlate(s string) string {
 	s = strings.Join(strings.Fields(s), "")
 	return latinToCyrillic.Replace(strings.ToUpper(s))
 }
+
+func (v *Validator) Check(ok bool, field, msg string) {
+	if !ok {
+		v.Add(field, msg)
+	}
+}
