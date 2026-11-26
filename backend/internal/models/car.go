@@ -6,7 +6,7 @@ import (
 
 const (
 	CarAvailable      = "available"
-	Carbooked         = "booked"
+	CarBooked         = "booked"
 	CarInUse          = "int_use"
 	CarMaintenance    = "maintenance"
 	carDecommissioned = "decommissioned"
@@ -14,7 +14,7 @@ const (
 
 var CarStatuses = []string{
 	CarAvailable,
-	Carbooked,
+	CarBooked,
 	CarInUse,
 	CarMaintenance,
 	carDecommissioned}

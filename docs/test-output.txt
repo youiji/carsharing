@@ -1,0 +1,19 @@
+# 2026-11-18 12:33 · go version go1.25.1 darwin/arm64 · PostgreSQL 14.20 (Homebrew)
+$ go vet ./...
+go vet: OK
+
+$ go test -race -cover ./...
+	carsharing/cmd/server		coverage: 0.0% of statements
+ok  	carsharing/e2e	29.751s	coverage: [no statements]
+	carsharing/internal/app		coverage: 0.0% of statements
+ok  	carsharing/internal/config	3.486s	coverage: 93.3% of statements
+ok  	carsharing/internal/dto	3.370s	coverage: 21.4% of statements
+ok  	carsharing/internal/handlers	4.638s	coverage: 16.8% of statements
+ok  	carsharing/internal/middleware	3.770s	coverage: 77.8% of statements
+?   	carsharing/internal/models	[no test files]
+ok  	carsharing/internal/ratelimit	2.217s	coverage: 91.2% of statements
+	carsharing/internal/repository		coverage: 0.0% of statements
+ok  	carsharing/internal/services	11.214s	coverage: 85.6% of statements
+ok  	carsharing/internal/util	7.719s	coverage: 59.8% of statements
+ok  	carsharing/internal/web	4.195s	coverage: 84.4% of statements
+exit: 0

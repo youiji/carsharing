@@ -21,5 +21,6 @@ func NewHandler(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
 		Users:   users,
 		Cars:    services.NewCarService(cars),
 		Tariffs: services.NewTariffService(repository.NewTariffRepository(pool)),
+		Rentals: services.NewRentalService(repository.NewRentalRepository(pool)),
 	})
 }

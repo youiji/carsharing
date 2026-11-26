@@ -17,6 +17,10 @@ func MapPgError(err error) error {
 			return ErrEmailTaken
 		case "uq_users_driver_license":
 			return ErrLicenseTaken
+		case "uq_rentals_one_active_per_car":
+			return ErrCarUnavailable
+		case "uq_rentals_one_active_per_user":
+			return ErrUserHasActiveRental
 		}
 	}
 	return err

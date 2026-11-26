@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"carsharing/internal/middleware"
+	"carsharing/internal/models"
 	"carsharing/internal/services"
 	"carsharing/internal/util"
 )
@@ -17,6 +18,7 @@ type Deps struct {
 	Auth    *services.AuthService
 	Cars    *services.CarService
 	Tariffs *services.TariffService
+	Rentals *services.RentalService
 }
 
 func NewRouter(d Deps) http.Handler {
@@ -25,6 +27,8 @@ func NewRouter(d Deps) http.Handler {
 	authed := middleware.Auth(d.Tokens, d.Users)
 	cars := &CarHandler{svc: d.Cars}
 	tariffs := &TariffHandler{svc: d.Tariffs}
+	rentals := &RentalHandler{svc: d.Rentals}
+	clientOnly := middleware.RequireRole(models.RoleClient)
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
@@ -34,6 +38,6 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/cars", authed(http.HandlerFunc(cars.List)))
 	mux.Handle("GET /api/cars/{id}", authed(http.HandlerFunc(cars.Get)))
 	mux.Handle("GET /api/tariffs", authed(http.HandlerFunc(tariffs.List)))
-
+	mux.Handle("POST /api/rentals", authed(clientOnly(http.HandlerFunc(rentals.Book))))
 	return mux
 }
