@@ -12,9 +12,21 @@ import (
 	"carsharing/internal/repository"
 	"carsharing/internal/services"
 	"carsharing/internal/util"
+	"carsharing/internal/web"
 )
 
-func NewHandler(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
+func NewHandler(pool *pgxpool.Pool, tokens *util.TokenManager, frontendDir string) (http.Handler, error) {
+	site, err := web.New(frontendDir)
+	if err != nil {
+		return nil, err
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/", newAPI(pool, tokens))
+	mux.Handle("/", site)
+	return web.SecurityHeaders(mux), nil
+}
+
+func newAPI(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
 	users := repository.NewUserRepository(pool)
 	cars := repository.NewCarRepository(pool)
 	return handlers.NewRouter(handlers.Deps{

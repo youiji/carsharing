@@ -1,0 +1,34 @@
+{{define "content"}}
+<h1>Профиль</h1>
+<div class="grid-2">
+  <section class="card">
+    <h2>Личные данные</h2>
+    <dl class="props profile-data"><dt>Загрузка…</dt></dl>
+    <p class="muted small">ФИО, email и водительское удостоверение фиксируются при регистрации.
+      Чтобы их изменить, обратитесь к администратору.</p>
+  </section>
+  <section class="card">
+    <h2>Смена пароля</h2>
+    <form class="form" id="password-form" novalidate>
+      <div class="field">
+        <label for="current_password">Текущий пароль</label>
+        <input id="current_password" name="current_password" type="password" autocomplete="current-password" required>
+        <p class="field-error" data-error-for="current_password"></p>
+      </div>
+      <div class="field">
+        <label for="new_password">Новый пароль</label>
+        <input id="new_password" name="new_password" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+        <p class="field-hint">Не менее 8 символов</p>
+        <p class="field-error" data-error-for="new_password"></p>
+      </div>
+      <div class="field">
+        <label for="new_password2">Повторите новый пароль</label>
+        <input id="new_password2" name="new_password2" type="password" autocomplete="new-password" required>
+        <p class="field-error" data-error-for="new_password2"></p>
+      </div>
+      <p class="form-error" role="alert"></p>
+      <button class="btn btn-primary" type="submit">Сменить пароль</button>
+    </form>
+  </section>
+</div>
+{{end}}

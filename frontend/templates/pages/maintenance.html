@@ -1,0 +1,35 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Журнал обслуживания</h1>
+  <button class="btn btn-primary" type="button" data-action="add">Добавить запись</button>
+</div>
+
+<form class="toolbar" id="filters" role="search">
+  <div class="field field-grow">
+    <label for="q">Поиск</label>
+    <input id="q" name="q" type="search" placeholder="Описание работ, автомобиль или гос. номер" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="car_id">Автомобиль</label>
+    <select id="car_id" name="car_id"><option value="">Все автомобили</option></select>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table id="maintenance-table">
+    <caption class="visually-hidden">Записи обслуживания</caption>
+    <thead>
+      <tr>
+        <th data-sort="logged_at" scope="col">Дата</th>
+        <th scope="col">Автомобиль</th>
+        <th scope="col">Работы</th>
+        <th data-sort="cost" class="num" scope="col">Стоимость</th>
+        <th scope="col">Автор</th>
+        <th scope="col"><span class="visually-hidden">Действия</span></th>
+      </tr>
+    </thead>
+    <tbody><tr><td class="table-empty">Загрузка…</td></tr></tbody>
+  </table>
+</div>
+<p class="table-footer maintenance-total"></p>
+{{end}}

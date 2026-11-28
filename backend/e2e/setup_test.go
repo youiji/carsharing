@@ -47,8 +47,12 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
+	handler, err := app.NewHandler(pool, util.NewTokenManager(testSecret, 30*time.Minute), "../../frontend")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(handler)
 
-	srv := httptest.NewServer(app.NewHandler(pool, util.NewTokenManager(testSecret, 30*time.Minute)))
 	t.Cleanup(func() {
 		srv.Close()
 		pool.Close()

@@ -1,0 +1,71 @@
+{{define "content"}}
+<section class="intro" aria-labelledby="intro-title">
+  <div>
+    <h1 id="intro-title">Каршеринг</h1>
+    <p class="lead">Автомобили на карте, поминутная аренда, учёт автопарка и обслуживания.</p>
+    <div class="intro-actions" data-show="guest" hidden>
+      <a class="btn btn-primary" href="/register">Зарегистрироваться</a>
+      <a class="btn btn-secondary" href="/login">Войти</a>
+    </div>
+    <p class="hero-greeting" data-show="user" hidden></p>
+  </div>
+
+  <ol class="route" aria-label="Как проходит аренда">
+    <li class="route-stop">
+      <span class="route-step" aria-hidden="true">1</span>
+      <h2>Бронирование</h2>
+      <p>Автомобиль закреплён за вами на 20 минут, пока вы идёте к нему.</p>
+      <p class="route-figure">до 20 мин<small>ожидание поминутно, в том числе при отмене</small></p>
+    </li>
+    <li class="route-stop">
+      <span class="route-step" aria-hidden="true">2</span>
+      <h2>Поездка</h2>
+      <p>Поминутный тариф автомобиля, цена фиксируется при бронировании.</p>
+      <p class="route-figure">от 1 мин<small>неполная минута округляется вверх</small></p>
+    </li>
+    <li class="route-stop">
+      <span class="route-step" aria-hidden="true">3</span>
+      <h2>Завершение</h2>
+      <p>Место парковки отмечается на карте, автомобиль снова свободен.</p>
+      <p class="route-figure">итог<small>стоимость рассчитывает сервер</small></p>
+    </li>
+  </ol>
+</section>
+
+<section class="home-panel" data-show="client" hidden aria-labelledby="current-title">
+  <h2 id="current-title">Текущая аренда</h2>
+  <div class="current-rental"><p class="muted">Загрузка…</p></div>
+</section>
+
+<section class="band" data-show="manager admin" hidden aria-labelledby="summary-title">
+  <h2 id="summary-title">Сводка</h2>
+  <div class="tiles home-stats"><p class="muted">Загрузка…</p></div>
+</section>
+
+<section class="home-panel" aria-labelledby="sections-title">
+  <h2 id="sections-title" data-show="guest" hidden>Возможности</h2>
+  <h2 data-show="user" hidden>Разделы</h2>
+  <ul class="destinations home-sections">
+    <li data-show="client manager admin" hidden><a class="destination" href="/catalog">
+      <h3>Каталог и карта</h3><p>Свободные автомобили в таблице и на карте, поиск и сортировка.</p></a></li>
+    <li data-show="client" hidden><a class="destination" href="/rentals/my">
+      <h3>Мои аренды</h3><p>Бронирование, начало и завершение поездки, история и стоимость.</p></a></li>
+    <li data-show="manager admin" hidden><a class="destination" href="/fleet">
+      <h3>Автомобили</h3><p>Добавление и изменение автомобилей, смена статуса.</p></a></li>
+    <li data-show="manager admin" hidden><a class="destination" href="/maintenance">
+      <h3>Обслуживание</h3><p>Журнал технического обслуживания автопарка.</p></a></li>
+    <li data-show="manager admin" hidden><a class="destination" href="/rentals">
+      <h3>Все аренды</h3><p>Поиск и сортировка аренд, отмена бронирований.</p></a></li>
+    <li data-show="manager admin" hidden><a class="destination" href="/stats">
+      <h3>Статистика</h3><p>Пользователи, автопарк, время ожидания и выручка.</p></a></li>
+    <li data-show="admin" hidden><a class="destination" href="/users">
+      <h3>Пользователи и роли</h3><p>Назначение ролей и изменение данных пользователей.</p></a></li>
+    <li data-show="guest" hidden><div class="destination">
+      <h3>Клиентам</h3><p>Свободные автомобили на карте, бронирование в один клик, поминутный тариф и история поездок.</p></div></li>
+    <li data-show="guest" hidden><div class="destination">
+      <h3>Менеджерам автопарка</h3><p>Учёт автомобилей, тарифов и технического обслуживания.</p></div></li>
+    <li data-show="guest" hidden><div class="destination">
+      <h3>Администраторам</h3><p>Управление пользователями и ролями, сводная статистика.</p></div></li>
+  </ul>
+</section>
+{{end}}

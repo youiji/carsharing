@@ -1,0 +1,43 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Все аренды</h1>
+</div>
+
+<form class="toolbar" id="filters" role="search">
+  <div class="field field-grow">
+    <label for="q">Поиск</label>
+    <input id="q" name="q" type="search" placeholder="ФИО клиента или гос. номер" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="status">Статус</label>
+    <select id="status" name="status">
+      <option value="">Все статусы</option>
+      <option value="booked">Бронирование</option>
+      <option value="active">В поездке</option>
+      <option value="completed">Завершена</option>
+      <option value="cancelled">Отменена</option>
+    </select>
+  </div>
+</form>
+<p class="notice filter-note" hidden></p>
+
+<div class="table-wrap">
+  <table id="rentals-table">
+    <caption class="visually-hidden">Аренды</caption>
+    <thead>
+      <tr>
+        <th data-sort="id" class="num" scope="col">№</th>
+        <th scope="col">Клиент</th>
+        <th scope="col">Автомобиль</th>
+        <th data-sort="booked_at" scope="col">Бронирование</th>
+        <th scope="col">Поездка</th>
+        <th data-sort="total_cost" class="num" scope="col">Стоимость</th>
+        <th data-sort="status" scope="col">Статус</th>
+        <th scope="col"><span class="visually-hidden">Действия</span></th>
+      </tr>
+    </thead>
+    <tbody><tr><td class="table-empty">Загрузка…</td></tr></tbody>
+  </table>
+</div>
+<p class="table-footer rentals-summary"></p>
+{{end}}

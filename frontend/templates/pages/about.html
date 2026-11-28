@@ -1,0 +1,41 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Об авторе</h1>
+</div>
+<div class="about-grid">
+  <section aria-labelledby="author-title">
+    <h2 id="author-title">Автор</h2>
+    <dl class="props">
+      <dt>Студент</dt><dd>Пономарев Вячеслав Дмитриевич</dd>
+      <dt>Группа</dt><dd>ТРПО24-4</dd>
+      <dt>Почта</dt><dd><a href="mailto:245187@edu.fa.ru">245187@edu.fa.ru</a></dd>
+      <dt>Научный руководитель</dt><dd>к.э.н., ст. преподаватель Цыренов Д. Г.</dd>
+      <dt>Учебное заведение</dt><dd>Финансовый университет при Правительстве Российской Федерации</dd>
+    </dl>
+  </section>
+  <section aria-labelledby="work-title">
+    <h2 id="work-title">Работа</h2>
+    <dl class="props">
+      <dt>Тема</dt><dd>Информационно-справочная система сервиса каршеринга</dd>
+      <dt>Вид работы</dt><dd>Курсовая работа</dd>
+      <dt>Дисциплина</dt><dd>Современные технологии программирования</dd>
+      <dt>Начало работ</dt><dd><time datetime="2026-10-20">20 октября 2026 г.</time></dd>
+      <dt>Завершение работ</dt><dd><time datetime="2026-12-11">11 декабря 2026 г.</time></dd>
+    </dl>
+  </section>
+  <section aria-labelledby="experience-title">
+    <h2 id="experience-title">Опыт</h2>
+    <p>Изучаю Go с начала 2026 года. Хотелось попробовать что-то серьёзное, поэтому сервер этого проекта написан полностью на Go.</p>
+    <p>В дальнейшем планирую переписать проект на микросервисную архитектуру.</p>
+  </section>
+  <section aria-labelledby="tech-title">
+    <h2 id="tech-title">Технологии</h2>
+    <dl class="props">
+      <dt>Сервер</dt><dd>Go: REST API, JWT-аутентификация, bcrypt, разграничение доступа по ролям</dd>
+      <dt>База данных</dt><dd>PostgreSQL: ограничения целостности, транзакции, частичные уникальные индексы</dd>
+      <dt>Клиент</dt><dd>HTML5, CSS3, JavaScript; карта Leaflet с векторной подложкой MapLibre GL (OpenFreeMap), диаграммы Chart.js</dd>
+      <dt>Архитектура</dt><dd>Трёхзвенная: браузер, сервер приложения, СУБД</dd>
+    </dl>
+  </section>
+</div>
+{{end}}

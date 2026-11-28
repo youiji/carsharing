@@ -12,6 +12,7 @@ type Config struct {
 	DatabaseURL string
 	JWTSecret   string
 	JWTTTL      time.Duration
+	FrontendDir string
 }
 
 func Load() (Config, error) {
@@ -20,6 +21,7 @@ func Load() (Config, error) {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		JWTSecret:   os.Getenv("JWT_SECRET"),
 		JWTTTL:      30 * time.Minute,
+		FrontendDir: getEnv("FRONTEND_DIR", "../frontend"),
 	}
 
 	if v := os.Getenv("JWT_TTL"); v != "" {

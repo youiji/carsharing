@@ -1,0 +1,48 @@
+{{define "head"}}{{template "map-head" .}}{{end}}
+{{define "content"}}
+<div class="page-head">
+  <h1>Автомобили</h1>
+  <button class="btn btn-primary" type="button" data-action="add">Добавить автомобиль</button>
+</div>
+
+<form class="toolbar" id="filters" role="search">
+  <div class="field field-grow">
+    <label for="q">Поиск</label>
+    <input id="q" name="q" type="search" placeholder="Марка, модель или гос. номер" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="tariff_id">Тариф</label>
+    <select id="tariff_id" name="tariff_id"><option value="">Все тарифы</option></select>
+  </div>
+  <div class="field">
+    <label for="status">Статус</label>
+    <select id="status" name="status">
+      <option value="">Все статусы</option>
+      <option value="available">Свободен</option>
+      <option value="booked">Забронирован</option>
+      <option value="in_use">В поездке</option>
+      <option value="maintenance">На обслуживании</option>
+      <option value="decommissioned">Списан</option>
+    </select>
+  </div>
+</form>
+
+<div class="table-wrap">
+  <table id="fleet-table">
+    <caption class="visually-hidden">Автопарк</caption>
+    <thead>
+      <tr>
+        <th data-sort="id" class="num" scope="col">№</th>
+        <th data-sort="brand_model" scope="col">Автомобиль</th>
+        <th data-sort="plate_number" scope="col">Гос. номер</th>
+        <th data-sort="price_per_min" scope="col">Тариф</th>
+        <th data-sort="fuel_level" scope="col">Топливо</th>
+        <th scope="col">Статус</th>
+        <th scope="col"><span class="visually-hidden">Действия</span></th>
+      </tr>
+    </thead>
+    <tbody><tr><td class="table-empty">Загрузка…</td></tr></tbody>
+  </table>
+</div>
+<p class="table-footer fleet-count"></p>
+{{end}}

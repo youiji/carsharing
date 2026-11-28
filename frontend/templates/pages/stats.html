@@ -1,0 +1,37 @@
+{{define "head"}}
+  <script defer src="/static/vendor/chartjs/chart.umd.js"></script>
+{{end}}
+{{define "content"}}
+<div class="page-head">
+  <h1>Статистика</h1>
+  <div class="btn-group">
+    <span class="muted small stats-time" aria-live="polite"></span>
+    <button class="btn btn-secondary btn-sm" type="button" data-action="refresh">Обновить</button>
+  </div>
+</div>
+
+<div class="tiles stats-tiles"><p class="muted">Загрузка…</p></div>
+
+<div class="charts">
+  <section class="card chart-card">
+    <h2>Выручка по тарифам</h2>
+    <p class="chart-sub">Завершённые поездки и платные отмены бронирований, по ценам на момент бронирования</p>
+    <div class="chart-box" data-chart="revenue"></div>
+  </section>
+  <section class="card chart-card">
+    <h2>Аренды по статусам</h2>
+    <p class="chart-sub">Количество аренд</p>
+    <div class="chart-box" data-chart="rentals"></div>
+  </section>
+  <section class="card chart-card">
+    <h2>Автомобили по статусам</h2>
+    <p class="chart-sub">Количество автомобилей</p>
+    <div class="chart-box" data-chart="cars"></div>
+  </section>
+  <section class="card chart-card">
+    <h2>Пользователи по ролям</h2>
+    <p class="chart-sub">Количество учётных записей</p>
+    <div class="chart-box" data-chart="users"></div>
+  </section>
+</div>
+{{end}}

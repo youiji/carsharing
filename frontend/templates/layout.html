@@ -1,0 +1,72 @@
+{{define "map-head"}}
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/static/vendor/maplibre/maplibre-gl.css">
+  <script defer src="/static/vendor/leaflet/leaflet.js"></script>
+  <script defer src="/static/vendor/maplibre/maplibre-gl-csp.js"></script>
+  <script defer src="/static/vendor/maplibre/leaflet-maplibre-gl.js"></script>
+{{end}}
+{{define "layout"}}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Page.Title}} | Каршеринг</title>
+  <meta name="description" content="Информационно-справочная система сервиса каршеринга: автомобили на карте, поминутная аренда, учёт автопарка и обслуживания.">
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/main.css">
+  {{block "head" .}}{{end}}
+</head>
+<body class="is-loading" data-page="{{.Page.Name}}" data-roles="{{.Roles}}"{{with .Script}} data-script="{{.}}"{{end}}>
+  <a class="skip-link" href="#main">К содержимому</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/static/img/favicon.svg" alt="" width="28" height="28" aria-hidden="true">
+        <span>Каршеринг</span>
+      </a>
+
+      <div class="nav-user" hidden>
+        <a class="nav-user-link" href="/profile" title="Профиль"{{if eq .Page.Path "/profile"}} aria-current="page"{{end}}>
+          <span class="nav-user-name"></span>
+          <span class="badge nav-user-role"></span>
+        </a>
+        <button class="btn btn-ghost btn-sm" type="button" data-action="logout">Выйти</button>
+      </div>
+
+      <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false">
+        <span class="visually-hidden">Меню</span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+    </div>
+
+    <nav id="site-nav" class="site-nav" aria-label="Главное меню">
+      <div class="container">
+        <ul class="nav-list">
+          {{range .Menu}}
+          <li data-roles="{{.Roles}}" hidden><a href="{{.Path}}"{{if eq .Path $.Page.Path}} aria-current="page"{{end}}>{{.Title}}</a></li>
+          {{end}}
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="container site-main">
+    <noscript><div class="alert alert-error">Для работы сервиса включите JavaScript в браузере.</div></noscript>
+    <div class="page-guard" hidden></div>
+    <div class="page-content">
+      {{template "content" .}}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© {{.Year}} Информационно-справочная система сервиса каршеринга</p>
+      <p>Курсовая работа, Пономарев В. Д., группа ТРПО24-4. <a href="/about">Об авторе</a></p>
+    </div>
+  </footer>
+
+  <div class="toasts" role="status" aria-live="polite"></div>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>{{end}}

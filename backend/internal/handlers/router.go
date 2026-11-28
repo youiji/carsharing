@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -46,5 +47,29 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/rentals/my", authed(clientOnly(http.HandlerFunc(rentals.ListMy))))
 	mux.Handle("GET /api/rentals", authed(staffOnly(http.HandlerFunc(rentals.List))))
 	mux.Handle("GET /api/rentals/{id}", authed(http.HandlerFunc(rentals.Get)))
+
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		if allowed := allowedMethods(mux, r); len(allowed) > 0 {
+			w.Header().Set("Allow", strings.Join(allowed, ", "))
+			util.WriteError(w, r, util.ErrMethodNotAllowed)
+			return
+		}
+		util.WriteError(w, r, util.ErrNotFound.WithMessage("Путь API не найден"))
+	})
 	return mux
+}
+
+func allowedMethods(mux *http.ServeMux, r *http.Request) []string {
+	var allowed []string
+	for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		if m == r.Method {
+			continue
+		}
+		probe := r.Clone(r.Context())
+		probe.Method = m
+		if _, pattern := mux.Handler(probe); pattern != "" && pattern != "/api/" {
+			allowed = append(allowed, m)
+		}
+	}
+	return allowed
 }
