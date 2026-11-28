@@ -68,6 +68,7 @@ CREATE TABLE cars (
     CONSTRAINT uq_cars_plate_number     UNIQUE (plate_number),
     CONSTRAINT chk_cars_brand_model     CHECK (btrim(brand_model) <> ''),
     CONSTRAINT chk_cars_plate_number    CHECK (btrim(plate_number) <> ''),
+    CONSTRAINT chk_cars_plate_format    CHECK (plate_number ~ '^[АВЕКМНОРСТУХ][0-9]{3}[АВЕКМНОРСТУХ]{2}[0-9]{2,3}$'),
     CONSTRAINT chk_cars_fuel_level      CHECK (fuel_level BETWEEN 0 AND 100),
     CONSTRAINT chk_cars_latitude        CHECK (latitude   BETWEEN  -90 AND  90),
     CONSTRAINT chk_cars_longitude       CHECK (longitude  BETWEEN -180 AND 180),
