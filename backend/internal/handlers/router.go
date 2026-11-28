@@ -21,6 +21,7 @@ type Deps struct {
 	Tariffs     *services.TariffService
 	Rentals     *services.RentalService
 	Maintenance *services.MaintenanceService
+	UsersAdmin  *services.UserService
 }
 
 func NewRouter(d Deps) http.Handler {
@@ -33,6 +34,8 @@ func NewRouter(d Deps) http.Handler {
 	clientOnly := middleware.RequireRole(models.RoleClient)
 	staffOnly := middleware.RequireRole(models.RoleManager, models.RoleAdmin)
 	maintenance := &MaintenanceHandler{svc: d.Maintenance}
+	users := &UserHandler{svc: d.UsersAdmin}
+	adminOnly := middleware.RequireRole(models.RoleAdmin)
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
@@ -60,6 +63,10 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/maintenance", authed(staffOnly(http.HandlerFunc(maintenance.Create))))
 	mux.Handle("PATCH /api/maintenance/{id}", authed(staffOnly(http.HandlerFunc(maintenance.Update))))
 	mux.Handle("DELETE /api/maintenance/{id}", authed(staffOnly(http.HandlerFunc(maintenance.Delete))))
+	mux.Handle("GET /api/users", authed(adminOnly(http.HandlerFunc(users.List))))
+	mux.Handle("PATCH /api/users/{id}/role", authed(adminOnly(http.HandlerFunc(users.ChangeRole))))
+	mux.Handle("PATCH /api/users/{id}", authed(adminOnly(http.HandlerFunc(users.Update))))
+	mux.Handle("DELETE /api/users/{id}", authed(adminOnly(http.HandlerFunc(users.Delete))))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if allowed := allowedMethods(mux, r); len(allowed) > 0 {

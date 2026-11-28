@@ -17,3 +17,12 @@ type User struct {
 	Role          string
 	CreatedAt     time.Time
 }
+
+var UserRoles = []string{RoleClient, RoleManager, RoleAdmin}
+
+type UserFilter struct {
+	Role   *string
+	Search string // email и ФИО
+	Sort   string
+	Desc   bool
+}

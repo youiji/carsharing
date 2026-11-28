@@ -49,3 +49,13 @@ type ChangePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
 }
+
+type UserRoleRequest struct {
+	Role string `json:"role"`
+}
+
+type UpdateUserRequest struct {
+	FullName      *string `json:"full_name"`
+	DriverLicense *string `json:"driver_license"`
+	Email         *string `json:"email"`
+}

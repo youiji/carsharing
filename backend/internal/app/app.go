@@ -38,6 +38,7 @@ func newAPI(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
 		Tariffs:     services.NewTariffService(repository.NewTariffRepository(pool)),
 		Rentals:     services.NewRentalService(repository.NewRentalRepository(pool)),
 		Maintenance: services.NewMaintenanceService(repository.NewMaintenanceRepository(pool)),
+		UsersAdmin:  services.NewUserService(users),
 	})
 }
 

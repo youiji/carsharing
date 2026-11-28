@@ -52,4 +52,6 @@ var (
 	ErrNameTaken           = newErr(http.StatusConflict, "name_taken", "Тариф с таким названием уже есть")
 	ErrHasRelatedRecords   = newErr(http.StatusConflict, "has_related_records", "Нельзя удалить объект, на который ссылаются другие записи")
 	ErrConflict            = newErr(http.StatusConflict, "conflict", "Конфликт данных")
+	ErrCannotChangeOwnRole = newErr(http.StatusForbidden, "cannot_change_own_role", "Нельзя изменить собственную роль")
+	ErrCannotDeleteSelf    = newErr(http.StatusForbidden, "cannot_delete_self", "Нельзя удалить собственную учётную запись")
 )
