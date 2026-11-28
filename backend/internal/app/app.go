@@ -30,13 +30,14 @@ func newAPI(pool *pgxpool.Pool, tokens *util.TokenManager) http.Handler {
 	users := repository.NewUserRepository(pool)
 	cars := repository.NewCarRepository(pool)
 	return handlers.NewRouter(handlers.Deps{
-		DB:      pool,
-		Auth:    services.NewAuthService(users, tokens),
-		Tokens:  tokens,
-		Users:   users,
-		Cars:    services.NewCarService(cars),
-		Tariffs: services.NewTariffService(repository.NewTariffRepository(pool)),
-		Rentals: services.NewRentalService(repository.NewRentalRepository(pool)),
+		DB:          pool,
+		Auth:        services.NewAuthService(users, tokens),
+		Tokens:      tokens,
+		Users:       users,
+		Cars:        services.NewCarService(cars),
+		Tariffs:     services.NewTariffService(repository.NewTariffRepository(pool)),
+		Rentals:     services.NewRentalService(repository.NewRentalRepository(pool)),
+		Maintenance: services.NewMaintenanceService(repository.NewMaintenanceRepository(pool)),
 	})
 }
 

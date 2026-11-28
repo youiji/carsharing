@@ -13,13 +13,14 @@ import (
 )
 
 type Deps struct {
-	DB      *pgxpool.Pool
-	Tokens  *util.TokenManager
-	Users   middleware.UserLoader
-	Auth    *services.AuthService
-	Cars    *services.CarService
-	Tariffs *services.TariffService
-	Rentals *services.RentalService
+	DB          *pgxpool.Pool
+	Tokens      *util.TokenManager
+	Users       middleware.UserLoader
+	Auth        *services.AuthService
+	Cars        *services.CarService
+	Tariffs     *services.TariffService
+	Rentals     *services.RentalService
+	Maintenance *services.MaintenanceService
 }
 
 func NewRouter(d Deps) http.Handler {
@@ -31,6 +32,7 @@ func NewRouter(d Deps) http.Handler {
 	rentals := &RentalHandler{svc: d.Rentals}
 	clientOnly := middleware.RequireRole(models.RoleClient)
 	staffOnly := middleware.RequireRole(models.RoleManager, models.RoleAdmin)
+	maintenance := &MaintenanceHandler{svc: d.Maintenance}
 
 	mux.HandleFunc("GET /api/health", healthHandler(d.DB))
 	mux.HandleFunc("POST /api/auth/register", auth.Register)
@@ -54,6 +56,10 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/tariffs", authed(staffOnly(http.HandlerFunc(tariffs.Create))))
 	mux.Handle("PUT /api/tariffs/{id}", authed(staffOnly(http.HandlerFunc(tariffs.Update))))
 	mux.Handle("DELETE /api/tariffs/{id}", authed(staffOnly(http.HandlerFunc(tariffs.Delete))))
+	mux.Handle("GET /api/maintenance", authed(staffOnly(http.HandlerFunc(maintenance.List))))
+	mux.Handle("POST /api/maintenance", authed(staffOnly(http.HandlerFunc(maintenance.Create))))
+	mux.Handle("PATCH /api/maintenance/{id}", authed(staffOnly(http.HandlerFunc(maintenance.Update))))
+	mux.Handle("DELETE /api/maintenance/{id}", authed(staffOnly(http.HandlerFunc(maintenance.Delete))))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if allowed := allowedMethods(mux, r); len(allowed) > 0 {
