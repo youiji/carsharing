@@ -59,3 +59,22 @@ func NewCars(cs []models.Car) []Car {
 	}
 	return out
 }
+
+type CarRequest struct {
+	TariffID    *int64   `json:"tariff_id"`
+	BrandModel  string   `json:"brand_model"`
+	PlateNumber string   `json:"plate_number"`
+	FuelLevel   *int     `json:"fuel_level"`
+	Latitude    *float64 `json:"latitude"`
+	Longitude   *float64 `json:"longitude"`
+}
+
+type CarStatusRequest struct {
+	Status string `json:"status"`
+}
+
+type TariffRequest struct {
+	Name          string      `json:"name"`
+	PricePerMin   *util.Money `json:"price_per_min"`
+	WaitingPerMin *util.Money `json:"waiting_per_min"`
+}

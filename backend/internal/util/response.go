@@ -57,6 +57,10 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 		if errors.As(err, &typeErr) && typeErr.Field != "" {
 			return ErrValidation.WithDetails(map[string]string{typeErr.Field: "неверный тип значения"})
 		}
+		if errors.Is(err, ErrMoneyFormat) {
+			return ErrValidation.WithMessage("Сумма должна быть числом с не более чем двумя знаками после запятой")
+		}
+
 		return ErrValidation.WithMessage("Некорректный JSON в теле запроса")
 	}
 	if dec.More() {

@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/mail"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -91,6 +92,12 @@ var latinToCyrillic = strings.NewReplacer(
 func NormalizePlate(s string) string {
 	s = strings.Join(strings.Fields(s), "")
 	return latinToCyrillic.Replace(strings.ToUpper(s))
+}
+
+var plateRe = regexp.MustCompile(`^[АВЕКМНОРСТУХ][0-9]{3}[АВЕКМНОРСТУХ]{2}[0-9]{2,3}$`)
+
+func ValidPlate(s string) bool {
+	return plateRe.MatchString(s)
 }
 
 func (v *Validator) Check(ok bool, field, msg string) {

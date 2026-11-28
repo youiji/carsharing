@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"carsharing/internal/dto"
 	"carsharing/internal/middleware"
 	"carsharing/internal/models"
 	"carsharing/internal/repository"
@@ -50,4 +51,69 @@ func (h *CarHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteJSON(w, http.StatusOK, car)
+}
+
+func (h *CarHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var req dto.CarRequest
+	if err := util.DecodeJSON(w, r, &req); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	car, err := h.svc.Create(r.Context(), req)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusCreated, car)
+}
+
+func (h *CarHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := util.PathID(r, "id")
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	var req dto.CarRequest
+	if err := util.DecodeJSON(w, r, &req); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	car, err := h.svc.Update(r.Context(), id, req)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, car)
+}
+
+func (h *CarHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
+	id, err := util.PathID(r, "id")
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	var req dto.CarStatusRequest
+	if err := util.DecodeJSON(w, r, &req); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	car, err := h.svc.ChangeStatus(r.Context(), id, req)
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, car)
+}
+
+func (h *CarHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := util.PathID(r, "id")
+	if err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	if err := h.svc.Delete(r.Context(), id); err != nil {
+		util.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

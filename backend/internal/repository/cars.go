@@ -117,3 +117,59 @@ func (r *CarRepository) InUserOpenRental(ctx context.Context, carID, userID int6
 	}
 	return exists, nil
 }
+
+func (r *CarRepository) Create(ctx context.Context, c models.Car) (int64, error) {
+	var id int64
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO cars (tariff_id, brand_model, plate_number, fuel_level, latitude, longitude)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id`,
+		c.TariffID, c.BrandModel, c.PlateNumber, c.FuelLevel, c.Latitude, c.Longitude).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("create car: %w", util.MapPgError(err))
+	}
+	return id, nil
+}
+
+func (r *CarRepository) Update(ctx context.Context, c models.Car) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE cars SET tariff_id = $2, brand_model = $3, plate_number = $4,
+		                fuel_level = $5, latitude = $6, longitude = $7
+		WHERE id = $1`,
+		c.ID, c.TariffID, c.BrandModel, c.PlateNumber, c.FuelLevel, c.Latitude, c.Longitude)
+	if err != nil {
+		return fmt.Errorf("update car: %w", util.MapPgError(err))
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CarRepository) ChangeStatus(ctx context.Context, id int64, to string, check func(from string) error) error {
+	return pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		var from string
+		err := tx.QueryRow(ctx, `SELECT status FROM cars WHERE id = $1 FOR UPDATE`, id).Scan(&from)
+		if err != nil {
+			return fmt.Errorf("lock car: %w", notFound(err))
+		}
+		if err := check(from); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE cars SET status = $2 WHERE id = $1`, id, to); err != nil {
+			return fmt.Errorf("set car status: %w", util.MapPgError(err))
+		}
+		return nil
+	})
+}
+
+func (r *CarRepository) Delete(ctx context.Context, id int64) error {
+	tag, err := r.db.Exec(ctx, `DELETE FROM cars WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete car: %w", util.MapPgDeleteError(err))
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

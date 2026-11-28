@@ -48,4 +48,8 @@ var (
 	ErrInvalidTransition   = newErr(http.StatusConflict, "invalid_status_transition", "Недопустимая смена статуса")
 	ErrBookingExpired      = newErr(http.StatusConflict, "booking_expired", "Срок бронирования истёк: бронирование отменено, списано ожидание")
 	ErrMethodNotAllowed    = newErr(http.StatusMethodNotAllowed, "method_not_allowed", "Метод не поддерживается")
+	ErrPlateTaken          = newErr(http.StatusConflict, "plate_taken", "Гос. номером уже есть в системе")
+	ErrNameTaken           = newErr(http.StatusConflict, "name_taken", "Тариф с таким названием уже есть")
+	ErrHasRelatedRecords   = newErr(http.StatusConflict, "has_related_records", "Нельзя удалить объект, на который ссылаются другие записи")
+	ErrConflict            = newErr(http.StatusConflict, "conflict", "Конфликт данных")
 )

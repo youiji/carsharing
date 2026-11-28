@@ -47,6 +47,13 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/rentals/my", authed(clientOnly(http.HandlerFunc(rentals.ListMy))))
 	mux.Handle("GET /api/rentals", authed(staffOnly(http.HandlerFunc(rentals.List))))
 	mux.Handle("GET /api/rentals/{id}", authed(http.HandlerFunc(rentals.Get)))
+	mux.Handle("POST /api/cars", authed(staffOnly(http.HandlerFunc(cars.Create))))
+	mux.Handle("PUT /api/cars/{id}", authed(staffOnly(http.HandlerFunc(cars.Update))))
+	mux.Handle("PATCH /api/cars/{id}/status", authed(staffOnly(http.HandlerFunc(cars.ChangeStatus))))
+	mux.Handle("DELETE /api/cars/{id}", authed(staffOnly(http.HandlerFunc(cars.Delete))))
+	mux.Handle("POST /api/tariffs", authed(staffOnly(http.HandlerFunc(tariffs.Create))))
+	mux.Handle("PUT /api/tariffs/{id}", authed(staffOnly(http.HandlerFunc(tariffs.Update))))
+	mux.Handle("DELETE /api/tariffs/{id}", authed(staffOnly(http.HandlerFunc(tariffs.Delete))))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		if allowed := allowedMethods(mux, r); len(allowed) > 0 {

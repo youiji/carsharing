@@ -9,7 +9,7 @@ const (
 	CarBooked         = "booked"
 	CarInUse          = "in_use"
 	CarMaintenance    = "maintenance"
-	carDecommissioned = "decommissioned"
+	CarDecommissioned = "decommissioned"
 )
 
 var CarStatuses = []string{
@@ -17,7 +17,7 @@ var CarStatuses = []string{
 	CarBooked,
 	CarInUse,
 	CarMaintenance,
-	carDecommissioned}
+	CarDecommissioned}
 
 type Tariff struct {
 	ID            int64

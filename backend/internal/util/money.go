@@ -1,9 +1,13 @@
 package util
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -53,4 +57,45 @@ func (m *Money) ScanNumeric(n pgtype.Numeric) error {
 
 func (m Money) NumericValue() (pgtype.Numeric, error) {
 	return pgtype.Numeric{Int: big.NewInt(int64(m)), Exp: -2, Valid: true}, nil
+}
+
+var ErrMoneyFormat = errors.New("сумма должна быть числом с не более чем двумя знаками после запятой")
+
+func (m *Money) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 || data[0] == '"' || bytes.ContainsAny(data, "eE") {
+		return ErrMoneyFormat
+	}
+	var num json.Number
+	if err := json.Unmarshal(data, &num); err != nil {
+		return ErrMoneyFormat
+	}
+	v, err := ParseMoney(num.String())
+	if err != nil {
+		return err
+	}
+	*m = v
+	return nil
+}
+
+func ParseMoney(s string) (Money, error) {
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	intPart, frac, hasDot := strings.Cut(s, ".")
+	if intPart == "" || len(frac) > 2 || (hasDot && frac == "") || len(intPart) > 15 {
+		return 0, ErrMoneyFormat
+	}
+	for len(frac) < 2 {
+		frac += "0"
+	}
+	rub, err1 := strconv.ParseUint(intPart, 10, 63)
+	kop, err2 := strconv.ParseUint(frac, 10, 8)
+	if err1 != nil || err2 != nil {
+		return 0, ErrMoneyFormat
+	}
+	v := Money(int64(rub)*100 + int64(kop))
+	if neg {
+		v = -v
+	}
+	return v, nil
 }
